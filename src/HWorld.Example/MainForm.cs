@@ -5,6 +5,7 @@ using HWorld.Core.World;
 using HWorld.WinForms;
 using HWorld.WinForms.Helpers;
 using HWorld.Console;
+using HWorld.WinForms.Helpers.Button;
 
 namespace HWorld.Example
 {
@@ -75,24 +76,25 @@ namespace HWorld.Example
             root.Controls.Add(status, 0, 2);
         }
 
-        private static LauncherButton MakeLauncherButton(string text)
+        private static HButton MakeLauncherButton(string text)
         {
-            return new LauncherButton
-            {
-                Text = text,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(10),
-                Font = new Font("Segoe UI", 11f, FontStyle.Bold),
-                ButtonLeaveBackGroundColor1 = Color.FromArgb(46, 56, 68),
-                ButtonLeaveBackGroundColor2 = Color.FromArgb(28, 35, 44),
-                ButtonEnterBackGroundColor1 = Color.FromArgb(75, 91, 109),
-                ButtonEnterBackGroundColor2 = Color.FromArgb(47, 57, 69),
-                ButtonDownBackGroundColor1 = Color.FromArgb(31, 38, 47),
-                ButtonDownBackGroundColor2 = Color.FromArgb(22, 28, 35),
-                ButtonLeaveForeColor = Color.White,
-                ButtonEnterForeColor = Color.White,
-                ButtonDownForeColor = Color.White
-            };
+           return new HButton { 
+               Text = text, 
+               Width = 270,  
+               Height = 36, 
+               Dock = DockStyle.Fill, 
+               Margin = new Padding(10),
+               Font = new Font("Segoe UI", 11f, FontStyle.Bold),
+               ButtonLeaveBackGroundColor1 = Color.FromArgb(46, 56, 68),
+               ButtonLeaveBackGroundColor2 = Color.FromArgb(28, 35, 44),
+               ButtonEnterBackGroundColor1 = Color.FromArgb(75, 91, 109),
+               ButtonEnterBackGroundColor2 = Color.FromArgb(47, 57, 69),
+               ButtonDownBackGroundColor1 = Color.FromArgb(31, 38, 47),
+               ButtonDownBackGroundColor2 = Color.FromArgb(22, 28, 35),
+               ButtonLeaveForeColor = Color.White,
+               ButtonEnterForeColor = Color.White,
+               ButtonDownForeColor = Color.White
+           };
         }
 
         private static World CreateTestWorld()
