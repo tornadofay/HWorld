@@ -7,9 +7,12 @@ namespace HWorld.Core.Geometry
     /// <summary>
     /// Renderer-independent 2D field-of-view sensor. It reports geometric
     /// observations without exposing application-defined names or kinds.
+    /// A camera instance owns reusable candidate storage for repeated Observe calls.
     /// </summary>
     public sealed class WorldGeometryCamera
     {
+        private readonly List<WorldItem> _candidateBuffer = new List<WorldItem>(32);
+
         public WorldGeometryCamera(double range = 50.0, double fieldOfViewDegrees = 90.0)
         {
             Range = range;
@@ -22,6 +25,8 @@ namespace HWorld.Core.Geometry
 
         /// <summary>
         /// Fills the supplied observation buffer. The buffer is cleared first.
+        /// This camera reuses internal candidate storage and is therefore intended
+        /// to be owned by one execution context; it is not thread-safe.
         /// </summary>
         public int Observe(World world, WorldActor observer, IList<WorldGeometryObservation> observations)
         {
@@ -32,17 +37,16 @@ namespace HWorld.Core.Geometry
             if (FieldOfViewDegrees <= 0 || FieldOfViewDegrees > 360) throw new InvalidOperationException("Field of view must be between 0 and 360 degrees.");
 
             observations.Clear();
-            var candidates = new List<WorldItem>(32);
             var r = Range;
             world.SpatialIndex.Query(
                 new WorldPoint(observer.Position.X - r, observer.Position.Y - r),
                 new WorldPoint(observer.Position.X + r, observer.Position.Y + r),
-                candidates);
+                _candidateBuffer);
 
             double halfFov = FieldOfViewDegrees * 0.5;
-            for (int i = 0; i < candidates.Count; i++)
+            for (int i = 0; i < _candidateBuffer.Count; i++)
             {
-                var item = candidates[i];
+                var item = _candidateBuffer[i];
                 var centerX = item.Position.X + item.Width * 0.5;
                 var centerY = item.Position.Y + item.Height * 0.5;
                 var dx = centerX - observer.Position.X;
