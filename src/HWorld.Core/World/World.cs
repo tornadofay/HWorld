@@ -9,12 +9,12 @@ namespace HWorld.Core.World
         private readonly List<WorldItem> _items = new List<WorldItem>();
         private readonly List<WorldActor> _actors = new List<WorldActor>();
         private readonly WorldSpatialIndex _spatialIndex;
+        private readonly List<WorldItem> _queryBuffer = new List<WorldItem>(32);
 
         public World(double width, double height)
         {
             if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-
             Width = width;
             Height = height;
             _spatialIndex = new WorldSpatialIndex(width, height);
@@ -31,14 +31,7 @@ namespace HWorld.Core.World
         {
             if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-
-            var item = new WorldItem(Guid.NewGuid(), position)
-            {
-                Width = width,
-                Height = height,
-                Solid = solid
-            };
-
+            var item = new WorldItem(Guid.NewGuid(), position) { Width = width, Height = height, Solid = solid };
             _items.Add(item);
             _spatialIndex.Add(item);
             return item;
@@ -58,20 +51,14 @@ namespace HWorld.Core.World
         {
             for (int i = 0; i < _items.Count; i++)
             {
-                if (_items[i].Id == id)
-                {
-                    _items.RemoveAt(i);
-                    _spatialIndex.Remove(id);
-                    return true;
-                }
+                if (_items[i].Id != id) continue;
+                _items.RemoveAt(i);
+                _spatialIndex.Remove(id);
+                return true;
             }
-
             return false;
         }
 
-        /// <summary>
-        /// Tells the world that an item's position or size changed outside the world API.
-        /// </summary>
         public void NotifyItemChanged(WorldItem item)
         {
             if (item == null) throw new ArgumentNullException(nameof(item));
@@ -83,20 +70,9 @@ namespace HWorld.Core.World
             if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
             if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
             if (speed < 0) throw new ArgumentOutOfRangeException(nameof(speed));
-
-            var actor = new WorldActor(Guid.NewGuid(), position)
-            {
-                Width = width,
-                Height = height,
-                Speed = speed
-            };
-
-            if (!IsInsideWorld(actor, position))
-                throw new ArgumentOutOfRangeException(nameof(position));
-
-            if (actor.Collides && IntersectsSolidItem(actor, position))
-                throw new InvalidOperationException("The actor cannot be spawned inside a solid world item.");
-
+            var actor = new WorldActor(Guid.NewGuid(), position) { Width = width, Height = height, Speed = speed };
+            if (!IsInsideWorld(actor, position)) throw new ArgumentOutOfRangeException(nameof(position));
+            if (actor.Collides && IntersectsSolidItem(actor, position)) throw new InvalidOperationException("The actor cannot be spawned inside a solid world item.");
             _actors.Add(actor);
             return actor;
         }
@@ -116,13 +92,10 @@ namespace HWorld.Core.World
         {
             for (int i = 0; i < _actors.Count; i++)
             {
-                if (_actors[i].Id == id)
-                {
-                    _actors.RemoveAt(i);
-                    return true;
-                }
+                if (_actors[i].Id != id) continue;
+                _actors.RemoveAt(i);
+                return true;
             }
-
             return false;
         }
 
@@ -131,7 +104,6 @@ namespace HWorld.Core.World
             WorldActor actor = FindActor(actorId);
             if (actor == null) return false;
             if (deltaSeconds < 0) throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
-
             var length = Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
             if (length > 0)
             {
@@ -143,56 +115,36 @@ namespace HWorld.Core.World
                     deltaY *= scale;
                 }
             }
-
             var target = new WorldPoint(actor.Position.X + deltaX, actor.Position.Y + deltaY);
             var moved = false;
-
             var xTarget = new WorldPoint(target.X, actor.Position.Y);
-            if (CanOccupy(actor, xTarget))
-            {
-                actor.Position = xTarget;
-                moved = Math.Abs(deltaX) > 0.000001;
-            }
-
+            if (CanOccupy(actor, xTarget)) { actor.Position = xTarget; moved = Math.Abs(deltaX) > 0.000001; }
             var yTarget = new WorldPoint(actor.Position.X, target.Y);
-            if (CanOccupy(actor, yTarget))
-            {
-                actor.Position = yTarget;
-                moved = moved || Math.Abs(deltaY) > 0.000001;
-            }
-
-            if (moved)
-                actor.RotationDegrees = Math.Atan2(deltaY, deltaX) * 180.0 / Math.PI;
-
+            if (CanOccupy(actor, yTarget)) { actor.Position = yTarget; moved = moved || Math.Abs(deltaY) > 0.000001; }
+            if (moved) actor.RotationDegrees = Math.Atan2(deltaY, deltaX) * 180.0 / Math.PI;
             return moved;
         }
 
         public WorldActor FindActor(Guid id)
         {
-            for (int i = 0; i < _actors.Count; i++)
-                if (_actors[i].Id == id)
-                    return _actors[i];
+            for (int i = 0; i < _actors.Count; i++) if (_actors[i].Id == id) return _actors[i];
             return null;
         }
 
         public WorldItem FindItemAt(WorldPoint point)
         {
-            var candidates = _spatialIndex.Query(point);
-            for (int i = candidates.Count - 1; i >= 0; i--)
+            if (!_spatialIndex.TryGetItemsAt(point, _queryBuffer)) return null;
+            for (int i = _queryBuffer.Count - 1; i >= 0; i--)
             {
-                var item = candidates[i];
-                if (Contains(item, point))
-                    return item;
+                var item = _queryBuffer[i];
+                if (Contains(item, point)) return item;
             }
-
             return null;
         }
 
         public void Update(double deltaSeconds)
         {
-            if (deltaSeconds < 0)
-                throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
-
+            if (deltaSeconds < 0) throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
             SimulationTime += deltaSeconds;
         }
 
@@ -204,9 +156,7 @@ namespace HWorld.Core.World
 
         private bool CanOccupy(WorldActor actor, WorldPoint center)
         {
-            if (!IsInsideWorld(actor, center))
-                return false;
-
+            if (!IsInsideWorld(actor, center)) return false;
             return !actor.Collides || !IntersectsSolidItem(actor, center);
         }
 
@@ -214,10 +164,7 @@ namespace HWorld.Core.World
         {
             double halfWidth = actor.Width / 2.0;
             double halfHeight = actor.Height / 2.0;
-            return center.X - halfWidth >= 0 &&
-                   center.Y - halfHeight >= 0 &&
-                   center.X + halfWidth <= Width &&
-                   center.Y + halfHeight <= Height;
+            return center.X - halfWidth >= 0 && center.Y - halfHeight >= 0 && center.X + halfWidth <= Width && center.Y + halfHeight <= Height;
         }
 
         private bool IntersectsSolidItem(WorldActor actor, WorldPoint center)
@@ -226,31 +173,23 @@ namespace HWorld.Core.World
             double minY = center.Y - actor.Height / 2.0;
             double maxX = center.X + actor.Width / 2.0;
             double maxY = center.Y + actor.Height / 2.0;
-
-            var candidates = _spatialIndex.Query(new WorldPoint(minX, minY), new WorldPoint(maxX, maxY));
-            for (int i = 0; i < candidates.Count; i++)
+            _spatialIndex.Query(new WorldPoint(minX, minY), new WorldPoint(maxX, maxY), _queryBuffer);
+            for (int i = 0; i < _queryBuffer.Count; i++)
             {
-                var item = candidates[i];
+                var item = _queryBuffer[i];
                 if (!item.Solid) continue;
-
                 double bx1 = item.Position.X;
                 double by1 = item.Position.Y;
                 double bx2 = item.Position.X + item.Width;
                 double by2 = item.Position.Y + item.Height;
-
-                if (minX < bx2 && maxX > bx1 && minY < by2 && maxY > by1)
-                    return true;
+                if (minX < bx2 && maxX > bx1 && minY < by2 && maxY > by1) return true;
             }
-
             return false;
         }
 
         private static bool Contains(WorldItem item, WorldPoint point)
         {
-            return point.X >= item.Position.X &&
-                   point.X <= item.Position.X + item.Width &&
-                   point.Y >= item.Position.Y &&
-                   point.Y <= item.Position.Y + item.Height;
+            return point.X >= item.Position.X && point.X <= item.Position.X + item.Width && point.Y >= item.Position.Y && point.Y <= item.Position.Y + item.Height;
         }
     }
 }
