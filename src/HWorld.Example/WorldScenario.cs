@@ -37,21 +37,26 @@ namespace HWorld.Example
 
             var house = world.AddItem(new WorldPoint(72, 30), 34, 24, true);
             house.Kind = "structure"; house.Name = "Old structure"; house.Shape = WorldShapeKind.House;
+            house.Interactable = true; house.InteractionLabel = "Inspect house";
 
             var tree = world.AddItem(new WorldPoint(32, 82), 7, 10, false);
             tree.Kind = "nature"; tree.Name = "Tree"; tree.Shape = WorldShapeKind.Tree;
+            tree.Interactable = true; tree.InteractionLabel = "Examine tree";
 
             var rock = world.AddItem(new WorldPoint(145, 96), 9, 7, true);
             rock.Kind = "obstacle"; rock.Name = "Rock"; rock.Shape = WorldShapeKind.Rock;
 
             var landmark = world.AddItem(new WorldPoint(183, 48), 10, 10, false);
             landmark.Kind = "landmark"; landmark.Name = "Unknown landmark"; landmark.Shape = WorldShapeKind.Star;
+            landmark.Interactable = true; landmark.InteractionLabel = "Examine landmark";
 
             var flower = world.AddItem(new WorldPoint(118, 78), 7, 7, false);
             flower.Kind = "nature"; flower.Name = "Flower"; flower.Shape = WorldShapeKind.Flower;
+            flower.Interactable = true; flower.InteractionLabel = "Examine flower";
 
             var pillar = world.AddItem(new WorldPoint(198, 94), 8, 16, true);
             pillar.Kind = "structure"; pillar.Name = "Stone pillar"; pillar.Shape = WorldShapeKind.Pillar;
+            pillar.Interactable = true; pillar.InteractionLabel = "Inspect pillar";
 
             return new WorldScenario(
                 world,
@@ -100,6 +105,11 @@ namespace HWorld.Example
                 }
                 item.RotationDegrees = random.Next(0, 4) * 15;
                 item.VisualVariant = (byte)random.Next(4);
+                if (!item.Solid && random.NextDouble() < 0.18)
+                {
+                    item.Interactable = true;
+                    item.InteractionLabel = "Examine object";
+                }
             }
 
             int clearings = 3 + random.Next(3);
@@ -112,6 +122,8 @@ namespace HWorld.Example
                 item.Name = "Untyped resource";
                 item.Shape = random.Next(2) == 0 ? WorldShapeKind.Ellipse : WorldShapeKind.Star;
                 item.VisualVariant = (byte)random.Next(4);
+                item.Interactable = true;
+                item.InteractionLabel = "Examine resource";
             }
 
             string story = "Seed " + seed + " generated an unknown landscape. The shapes have no fixed meaning to the player; exploration gives the world context.";
