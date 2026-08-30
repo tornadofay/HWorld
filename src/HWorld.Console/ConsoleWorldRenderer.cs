@@ -136,7 +136,8 @@ namespace HWorld.Console
 
             try
             {
-                System.Console.ForegroundColor = ConsoleColor.Gray;
+            //    System.Console.ForegroundColor = ConsoleColor.Gray;
+                System.Console.Clear();
                 System.Console.Write(_frame.ToString());
             }
             catch

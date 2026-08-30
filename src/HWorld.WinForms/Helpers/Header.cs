@@ -63,6 +63,7 @@ namespace HWorld.WinForms.Helpers
             MinimumSize = new Size(0, _headerHeight);
             Font = new Font("Segoe UI Semibold", 10.5f, FontStyle.Bold);
             BackColor = Color.Transparent;
+            this.AllowHelp = false;
         }
 
         protected override void Dispose(bool disposing)
@@ -179,7 +180,7 @@ namespace HWorld.WinForms.Helpers
                 g.FillRectangle(brush, ClientRectangle);
 
             DrawContent(g);
-            DrawButton(g, HeaderButton.Help, AllowHelp, "?");
+           // DrawButton(g, HeaderButton.Help, AllowHelp, "?");
             DrawButton(g, HeaderButton.Minimize, AllowMinimize, "—");
             DrawButton(g, HeaderButton.Close, AllowClose, "×");
         }
