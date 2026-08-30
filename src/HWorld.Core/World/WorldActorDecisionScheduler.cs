@@ -6,11 +6,6 @@ using System.Threading.Tasks;
 
 namespace HWorld.Core.World
 {
-    /// <summary>
-    /// Coordinates asynchronous actor decisions without blocking the simulation thread.
-    /// Decision providers receive immutable actor snapshots. Completed actions return to the
-    /// simulation through the validated world action queue.
-    /// </summary>
     public sealed class WorldActorDecisionScheduler : IDisposable
     {
         private sealed class Slot
@@ -65,13 +60,7 @@ namespace HWorld.Core.World
 
         public int MaxConcurrentRequests { get; }
         public int ActiveRequestCount { get; private set; }
-
-        /// <summary>
-        /// Captures an observation on the simulation thread before asynchronous decision work starts.
-        /// Returning an empty string keeps the scheduler independent from any specific sensor.
-        /// </summary>
         public Func<WorldActor, string> ObservationFactory { get; set; }
-
         public event EventHandler<WorldActorDecisionEvent> DecisionLifecycle;
 
         public void Register(WorldActor actor, IWorldActorDecisionProvider provider, WorldActorDecisionOptions options = null)
@@ -79,6 +68,7 @@ namespace HWorld.Core.World
             ThrowIfDisposed();
             if (actor == null) throw new ArgumentNullException(nameof(actor));
             if (provider == null) throw new ArgumentNullException(nameof(provider));
+            if (actor.Controller != null) throw new InvalidOperationException("An actor using the asynchronous decision scheduler cannot also use a synchronous controller.");
             if (_slots.ContainsKey(actor.Id)) throw new InvalidOperationException("The actor is already registered with this scheduler.");
 
             options = CloneAndValidate(options ?? new WorldActorDecisionOptions());
@@ -98,10 +88,6 @@ namespace HWorld.Core.World
             return true;
         }
 
-        /// <summary>
-        /// Pumps asynchronous decision state. Call this from the simulation thread once per
-        /// world update, after <see cref="World.Update(double)"/>.
-        /// </summary>
         public void Update(double simulationTime)
         {
             ThrowIfDisposed();
@@ -109,9 +95,7 @@ namespace HWorld.Core.World
 
             CleanupRetiredRequests();
             var slots = new List<Slot>(_slots.Values);
-
-            for (int i = 0; i < slots.Count; i++)
-                PollRequest(slots[i], simulationTime);
+            for (int i = 0; i < slots.Count; i++) PollRequest(slots[i], simulationTime);
 
             int available = MaxConcurrentRequests - ActiveRequestCount;
             if (available <= 0) return;
@@ -138,8 +122,7 @@ namespace HWorld.Core.World
         {
             ThrowIfDisposed();
             var slots = new List<Slot>(_slots.Values);
-            for (int i = 0; i < slots.Count; i++)
-                CancelActive(slots[i], WorldActorDecisionOutcome.Cancelled, "All actor decisions were cancelled.");
+            for (int i = 0; i < slots.Count; i++) CancelActive(slots[i], WorldActorDecisionOutcome.Cancelled, "All actor decisions were cancelled.");
         }
 
         private void StartDecision(Slot slot, double simulationTime)
@@ -237,7 +220,6 @@ namespace HWorld.Core.World
             if (request.Slot.Options.DecisionTimeout == Timeout.InfiniteTimeSpan) return false;
             if (request.Slot.Options.SchedulingMode == WorldDecisionSchedulingMode.DeterministicCheckpoint)
                 return simulationTime - request.StartedSimulationTime >= request.Slot.Options.DecisionTimeout.TotalSeconds;
-
             return GetElapsedSeconds(request) >= request.Slot.Options.DecisionTimeout.TotalSeconds;
         }
 
