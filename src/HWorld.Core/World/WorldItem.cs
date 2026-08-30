@@ -30,5 +30,10 @@ namespace HWorld.Core.World
         // Small deterministic variation value for renderers that want subtle
         // visual differences without changing the object's simulation meaning.
         public byte VisualVariant { get; set; }
+
+        // Generic interaction capability. The world does not decide what an
+        // interaction means; it only exposes whether interaction is permitted.
+        public bool Interactable { get; set; }
+        public string InteractionLabel { get; set; } = "Interact";
     }
 }
