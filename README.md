@@ -6,6 +6,38 @@ It is designed for experiments where humans and AI agents inhabit the same persi
 
 HWorld is intentionally **independent from HAgent during its early development**. The world must become useful and testable before any LLM integration exists. HAgent will be an optional external integration later.
 
+## Current status
+
+HWorld has now reached the first substantial pre-AI prototype. The world can be authored by hand, rendered through reusable WinForms/GDI+ or console views, saved and loaded, queried through a spatial index, played by a human-controlled actor, and inspected through a geometry-based sensor.
+
+Implemented today:
+
+- Renderer-independent world, item, actor, geometry, collision and simulation-time model
+- Vector-based world shapes and GDI+ rendering
+- Console rendering
+- World Designer with object placement, selection and editing
+- Save/load using `.hworld.json`
+- Default world storage under `Worlds\\` beside the application executable in the WinForms example
+- Uniform-grid spatial index with reusable query buffers
+- Human player movement
+- Basic collision-aware movement
+- Generic object interaction and interactable item metadata
+- Forward-facing geometry camera with FOV and range
+- Compact geometry-observation serialization
+- Approximate observation token-cost estimation
+- Human-facing Geometry Eye visualization in the GDI runtime
+- Separate `HWorld.Example` test harness, `HWorld.WinForms` renderer/designer library, and `HWorld.Console` renderer
+
+Not yet implemented:
+
+- LLM/HAgent integration
+- Agent memory
+- Agent hands/inventory
+- Knowledge/skills
+- Multi-agent decision-making
+- Generational inheritance
+- Rendered-image perception
+
 ## Core rule
 
 **The simulation is the world. A renderer is only a view of the world. A camera is only a sensor. An LLM is only one possible decision-making mechanism.**
@@ -31,6 +63,32 @@ HWorld is intentionally **independent from HAgent during its early development**
             |              |              |
          Console          GDI+      Future adapters
                                       DirectX / Godot / Unity
+```
+
+## Project boundaries
+
+The solution is intentionally split so that rendering experiments do not become part of the simulation core.
+
+```text
+HWorld.Core
+    World / Items / Actors / Geometry
+    Time / Collision / Spatial Index
+    Persistence / Perception contracts
+
+HWorld.WinForms
+    Reusable WinForms controls
+    GDI+ world renderer
+    Geometry Eye renderer
+    World Designer
+    GDI runtime viewer
+
+HWorld.Console
+    Reusable console renderer/runtime
+
+HWorld.Example
+    Test harness only
+    Creates sample worlds
+    Opens Designer / GDI / Console
 ```
 
 ## Why start with console and GDI+
@@ -150,8 +208,8 @@ The human and AI should interact with the same world objects and obey the same p
 - [HAgent Project Plan Prompt](docs/api/HAgent-project-plan-prompt.md)
 - [Experiments](docs/experiments/experiments.md)
 
-## First implementation principle
+## Development rule
 
 Do not begin with AI.
 
-Begin with a deterministic world containing objects, time, movement, collision, spatial queries, a character-grid console view, save/load, and a human-controlled entity. Add geometry perception only after the world is dependable. Add HAgent only after those foundations are independently testable.
+First make the deterministic world dependable, testable, persistable, and renderer-independent. Build richer perception and interaction before connecting HAgent. Keep project state documented whenever a milestone changes the implementation.
