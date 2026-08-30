@@ -103,7 +103,7 @@ The laboratory should make it possible to change FOV, range, observer heading, o
 - what text an external agent would receive;
 - how much information/token budget that representation consumes.
 
-This is an experiment and debugging facility, but it also defines the boundary for future HAgent integration.
+The Phase 3 Multi-Actor Laboratory extends this experiment to two independent observers so their perception can differ even inside the same world.
 
 ## Compact observation serialization
 
@@ -123,7 +123,7 @@ Each observation should have a measurable information/token estimate.
 
 The engine and experiment tooling should be able to compare:
 
-- objects observed
+- entities observed
 - fields included
 - serialized character count
 - estimated token count
@@ -148,7 +148,22 @@ unless the selected experiment explicitly permits them.
 
 ## Actor perception
 
-Future actor observations must be treated like any other sensor output. An agent should receive what its sensor can perceive, not a privileged list of every actor in the world.
+Actor observations are now implemented as another geometry entity in the Level 0 contract.
+
+A `WorldGeometryCamera` can enable or disable actor reporting through `IncludeActors`. When enabled, it:
+
+- excludes the observing actor itself;
+- applies the same range and FOV filtering as item observations;
+- reports the other actor's anonymous ID, relative geometry, distance, bearing, size and rotation;
+- does not expose the actor's name, controller, queue, private state or intention.
+
+Actor observations do not receive a special semantic tag in the compact format. This preserves the deliberately anonymous Level 0 observation contract and prevents the sensor from becoming a source of hidden world knowledge.
+
+## Independent actor sensors
+
+Sensor instances are independent objects. Each observer can therefore use different FOV, range and solid-state settings while reading the same authoritative world.
+
+The sensor implementation reuses local candidate buffers and is intended to be owned by one execution context; a camera instance is not thread-safe.
 
 ## HWorld/HAgent boundary
 
