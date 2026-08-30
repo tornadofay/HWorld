@@ -80,18 +80,22 @@ namespace HWorld.Core.World
             Insert(item, next);
         }
 
-        public List<WorldItem> Query(WorldPoint point)
+        public bool TryGetItemsAt(WorldPoint point, List<WorldItem> destination)
         {
-            int cellX = ToCellX(point.X);
-            int cellY = ToCellY(point.Y);
-            List<WorldItem> result;
-            if (!_cells.TryGetValue(Key(cellX, cellY), out result))
-                return new List<WorldItem>();
-            return new List<WorldItem>(result);
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            destination.Clear();
+            List<WorldItem> bucket;
+            if (!_cells.TryGetValue(Key(ToCellX(point.X), ToCellY(point.Y)), out bucket))
+                return false;
+            destination.AddRange(bucket);
+            return destination.Count != 0;
         }
 
-        public List<WorldItem> Query(WorldPoint min, WorldPoint max)
+        public void Query(WorldPoint min, WorldPoint max, List<WorldItem> destination)
         {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            destination.Clear();
+
             double minX = Math.Min(min.X, max.X);
             double minY = Math.Min(min.Y, max.Y);
             double maxX = Math.Max(min.X, max.X);
@@ -102,7 +106,6 @@ namespace HWorld.Core.World
             int maxCellX = ToCellX(maxX);
             int maxCellY = ToCellY(maxY);
 
-            var result = new List<WorldItem>();
             var seen = new HashSet<Guid>();
             for (int y = minCellY; y <= maxCellY; y++)
             {
@@ -115,11 +118,10 @@ namespace HWorld.Core.World
                         var item = bucket[i];
                         if (!seen.Add(item.Id)) continue;
                         if (Intersects(item, minX, minY, maxX, maxY))
-                            result.Add(item);
+                            destination.Add(item);
                     }
                 }
             }
-            return result;
         }
 
         private void Insert(WorldItem item, CellRange range)
@@ -165,46 +167,23 @@ namespace HWorld.Core.World
         {
             double maxX = Math.Min(_worldWidth, item.Position.X + Math.Max(0, item.Width));
             double maxY = Math.Min(_worldHeight, item.Position.Y + Math.Max(0, item.Height));
-            return new CellRange(
-                ToCellX(item.Position.X),
-                ToCellY(item.Position.Y),
-                ToCellX(maxX),
-                ToCellY(maxY));
+            return new CellRange(ToCellX(item.Position.X), ToCellY(item.Position.Y), ToCellX(maxX), ToCellY(maxY));
         }
 
-        private int ToCellX(double x)
-        {
-            if (x < 0) return 0;
-            if (x >= _worldWidth) return Math.Max(0, (int)Math.Ceiling(_worldWidth / _cellSize) - 1);
-            return (int)Math.Floor(x / _cellSize);
-        }
-
-        private int ToCellY(double y)
-        {
-            if (y < 0) return 0;
-            if (y >= _worldHeight) return Math.Max(0, (int)Math.Ceiling(_worldHeight / _cellSize) - 1);
-            return (int)Math.Floor(y / _cellSize);
-        }
-
-        private static long Key(int x, int y)
-        {
-            return ((long)x << 32) ^ (uint)y;
-        }
+        private int ToCellX(double x) { if (x < 0) return 0; if (x >= _worldWidth) return Math.Max(0, (int)Math.Ceiling(_worldWidth / _cellSize) - 1); return (int)Math.Floor(x / _cellSize); }
+        private int ToCellY(double y) { if (y < 0) return 0; if (y >= _worldHeight) return Math.Max(0, (int)Math.Ceiling(_worldHeight / _cellSize) - 1); return (int)Math.Floor(y / _cellSize); }
+        private static long Key(int x, int y) { return ((long)x << 32) ^ (uint)y; }
 
         private static bool Intersects(WorldItem item, double minX, double minY, double maxX, double maxY)
         {
             double itemMaxX = item.Position.X + item.Width;
             double itemMaxY = item.Position.Y + item.Height;
-            return item.Position.X <= maxX && itemMaxX >= minX &&
-                   item.Position.Y <= maxY && itemMaxY >= minY;
+            return item.Position.X <= maxX && itemMaxX >= minX && item.Position.Y <= maxY && itemMaxY >= minY;
         }
 
         private readonly struct CellRange : IEquatable<CellRange>
         {
-            public CellRange(int minX, int minY, int maxX, int maxY)
-            {
-                MinX = minX; MinY = minY; MaxX = maxX; MaxY = maxY;
-            }
+            public CellRange(int minX, int minY, int maxX, int maxY) { MinX = minX; MinY = minY; MaxX = maxX; MaxY = maxY; }
             public readonly int MinX, MinY, MaxX, MaxY;
             public bool Equals(CellRange other) { return MinX == other.MinX && MinY == other.MinY && MaxX == other.MaxX && MaxY == other.MaxY; }
             public override bool Equals(object obj) { return obj is CellRange && Equals((CellRange)obj); }
