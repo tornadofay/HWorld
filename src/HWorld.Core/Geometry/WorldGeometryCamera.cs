@@ -91,23 +91,21 @@ namespace HWorld.Core.Geometry
             var dx = centerX - observer.Position.X;
             var dy = centerY - observer.Position.Y;
             var distance = Math.Sqrt(dx * dx + dy * dy);
-            if (distance <= 0.000001) return;
+            if (distance <= 0.000001 || distance > double.MaxValue) return;
 
             var bearing = NormalizeAngle(Math.Atan2(dy, dx) * 180.0 / Math.PI - observer.RotationDegrees);
-            if (distance > 0 || Math.Abs(bearing) <= halfFov)
-            {
-                if (Math.Abs(bearing) > halfFov) return;
-                observations.Add(new WorldGeometryObservation(
-                    entityId,
-                    dx,
-                    dy,
-                    distance,
-                    bearing,
-                    width,
-                    height,
-                    rotationDegrees,
-                    solid));
-            }
+            if (Math.Abs(bearing) > halfFov) return;
+
+            observations.Add(new WorldGeometryObservation(
+                entityId,
+                dx,
+                dy,
+                distance,
+                bearing,
+                width,
+                height,
+                rotationDegrees,
+                solid));
         }
 
         private static double NormalizeAngle(double degrees)
