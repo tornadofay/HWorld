@@ -47,9 +47,18 @@ The following foundation work is complete:
 - Compact geometry observation serialization
 - Approximate observation token estimator
 - Geometry Eye visualization
+- Multiple independent actors
+- Actor-specific movement/action state
+- Actor-specific sensor instances
+- Actor-to-actor collision handling
+- Actor observation of other actors
+- Basic non-LLM behavior/controller interface
+- Deterministic actor update ordering
+- Independent actor action queues
+- Multi-Actor Laboratory in `HWorld.Example`
 - Clean project separation between Core, WinForms, Console and Example
 
-The `HWorld.Example` project is the test/experiment harness. It must progressively expose the internal capabilities as observable experiments rather than merely launch the renderers.
+The `HWorld.Example` project is the test/experiment harness. It must progressively expose internal capabilities as observable experiments rather than merely launch the renderers.
 
 ## Phase 0 — Foundation
 
@@ -126,34 +135,56 @@ Goal: allow an observer to perceive a limited local world without semantic label
 
 - Proper occlusion
 - More precise shape projection
-- Actor/entity observations
 - Alternative camera models
 - Sensor noise/resolution controls
 
+Actor observations are now covered by Phase 3 while preserving the same anonymous geometric observation contract.
+
 ## Phase 3 — Multi-actor simulation
 
-**Status: Next implementation phase**
+**Status: Complete**
 
 Goal: establish multiple independently embodied actors before adding LLMs.
 
-### Deliverables
+### Completed deliverables
 
 - Multiple actors in one world
-- Independent actor bodies
+- Independent actor bodies and physical state
 - Actor-specific movement state
 - Actor-specific sensor instances
 - Actor-to-actor collision handling
-- Actor observation of other actors
+- Actor observation of other actors through the geometry sensor
 - Basic non-LLM behavior/controller interface
-- Deterministic actor update ordering
+- Deterministic actor update ordering based on actor list order
 - Independent actor action queues
-- Example laboratory showing two or more actors simultaneously
+- Validated world-side MOVE/TURN/WAIT action execution
+- Multi-Actor Laboratory showing two independently controlled actors simultaneously
+- Per-actor exact compact observation text and approximate token estimate
 
-The experiment must demonstrate that each actor can have a different sensor view while sharing the same authoritative world.
+The Phase 3 laboratory demonstrates that multiple actors share one authoritative world while their sensor views depend on their own position, heading and sensor settings.
+
+### Boundary decisions
+
+Controllers are behavior inputs, not cognition systems. They may enqueue actions but cannot directly mutate actor position or advance simulation time.
+
+Actor collision uses the existing body AABB approach with a direct actor scan. The scan is intentionally simple for the current small-population laboratory; it should only be replaced after profiling demonstrates a need for an actor spatial index.
+
+Action queues are runtime execution state and are not persisted in world snapshots. Actor physical state remains persistable through the existing world serializer.
+
+### Verification target
+
+Before moving to Phase 4, the Example laboratory must visibly demonstrate:
+
+1. two actors updating independently;
+2. actor collision preventing overlap;
+3. actor-specific sensor instances;
+4. one actor observing the other only when the other is inside its FOV/range;
+5. the exact serializer output matching the displayed observation text;
+6. deterministic behavior across repeated runs with the same initial world/controller state.
 
 ## Phase 4 — Time and decision scheduling
 
-**Status: Planned**
+**Status: Next implementation phase**
 
 Goal: separate simulation time from decision/response time.
 
@@ -169,6 +200,8 @@ Goal: separate simulation time from decision/response time.
 - Event-driven action completion
 
 A slow model must not freeze the world. A faster model must not receive an unfair assumption of instantaneous physical execution.
+
+Phase 3 deliberately does not implement model latency, asynchronous thought requests, cancellation or timeout policy.
 
 ## Phase 5 — First HAgent Brain
 
@@ -272,7 +305,7 @@ Goal: distinguish remembered events from reusable understanding and procedures.
 
 ## Phase 9 — Multi-Agent Society
 
-**Status: Planned after multi-actor foundation**
+**Status: Planned after the multi-actor foundation and decision scheduling**
 
 Goal: allow multiple autonomous agents to inhabit one world.
 
