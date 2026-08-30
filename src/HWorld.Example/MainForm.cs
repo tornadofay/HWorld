@@ -19,14 +19,7 @@ namespace HWorld.Example
             BackColor = Color.FromArgb(11, 14, 18);
             ForeColor = Color.FromArgb(235, 239, 244);
 
-            var root = new TableLayoutPanel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = BackColor,
-                ColumnCount = 1,
-                RowCount = 3,
-                Padding = new Padding(28)
-            };
+            var root = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = BackColor, ColumnCount = 1, RowCount = 3, Padding = new Padding(28) };
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 64f));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 54f));
@@ -66,9 +59,11 @@ namespace HWorld.Example
             var designer = MakeLauncherButton("Design World");
             designer.Click += delegate { OpenDesigner(); };
             buttons.Controls.Add(designer, 0, 0);
+
             var gdi = MakeLauncherButton("Run GDI");
             gdi.Click += delegate { OpenGdi(); };
             buttons.Controls.Add(gdi, 1, 0);
+
             var console = MakeLauncherButton("Run Console");
             console.Click += delegate { OpenConsole(); };
             buttons.Controls.Add(console, 2, 0);
@@ -94,7 +89,7 @@ namespace HWorld.Example
                 ButtonEnterBackGroundColor2 = Color.FromArgb(47, 57, 69),
                 ButtonDownBackGroundColor1 = Color.FromArgb(31, 38, 47),
                 ButtonDownBackGroundColor2 = Color.FromArgb(22, 28, 35),
-                ButtonLeaveForeColor = Color.FromArgb(235, 240, 245),
+                ButtonLeaveForeColor = Color.White,
                 ButtonEnterForeColor = Color.White,
                 ButtonDownForeColor = Color.White
             };
@@ -117,8 +112,7 @@ namespace HWorld.Example
             try
             {
                 var world = CreateTestWorld();
-                var form = new GdiWorldForm(world, world.Actors[0]);
-                form.Show(this);
+                new GdiWorldForm(world, world.Actors[0]).Show(this);
             }
             catch (Exception ex) { HMessage.ShowException(this, "The GDI runtime could not be opened.", "HWorld.Example", ex); }
         }
