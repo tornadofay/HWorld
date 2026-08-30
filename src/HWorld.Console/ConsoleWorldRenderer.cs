@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using HWorld.Core.Geometry;
 using HWorld.Core.World;
 
@@ -8,6 +9,7 @@ namespace HWorld.Console
     {
         private readonly char[,] _buffer;
         private readonly ConsoleColor[,] _colors;
+        private readonly StringBuilder _frame;
         private double _cameraX;
         private double _cameraY;
         private double _unitsPerColumn = 2.0;
@@ -18,6 +20,7 @@ namespace HWorld.Console
             Height = Math.Max(10, height);
             _buffer = new char[Height, Width];
             _colors = new ConsoleColor[Height, Width];
+            _frame = new StringBuilder((Width + 2) * (Height + 3));
         }
 
         public int Width { get; }
@@ -69,16 +72,13 @@ namespace HWorld.Console
 
         private void DrawWorldBounds(World world, double left, double top, double unitsPerRow)
         {
-            var right = left + Width * UnitsPerColumn;
-            var bottom = top + Height * unitsPerRow;
-
             for (var x = 0; x < Width; x++)
             {
                 var worldX = left + (x + 0.5) * UnitsPerColumn;
                 if (worldX >= -UnitsPerColumn && worldX <= world.Width + UnitsPerColumn)
                 {
-                    SetCell(x, 0, worldX < 0 || worldX > world.Width ? '+' : '─', ConsoleColor.DarkGray);
-                    SetCell(x, Height - 1, worldX < 0 || worldX > world.Width ? '+' : '─', ConsoleColor.DarkGray);
+                    SetCell(x, 0, worldX < 0 || worldX > world.Width ? '+' : '-', ConsoleColor.DarkGray);
+                    SetCell(x, Height - 1, worldX < 0 || worldX > world.Width ? '+' : '-', ConsoleColor.DarkGray);
                 }
             }
 
@@ -87,8 +87,8 @@ namespace HWorld.Console
                 var worldY = top + (y + 0.5) * unitsPerRow;
                 if (worldY >= -unitsPerRow && worldY <= world.Height + unitsPerRow)
                 {
-                    SetCell(0, y, worldY < 0 || worldY > world.Height ? '+' : '│', ConsoleColor.DarkGray);
-                    SetCell(Width - 1, y, worldY < 0 || worldY > world.Height ? '+' : '│', ConsoleColor.DarkGray);
+                    SetCell(0, y, worldY < 0 || worldY > world.Height ? '+' : '|', ConsoleColor.DarkGray);
+                    SetCell(Width - 1, y, worldY < 0 || worldY > world.Height ? '+' : '|', ConsoleColor.DarkGray);
                 }
             }
         }
@@ -102,9 +102,7 @@ namespace HWorld.Console
                 var cellY = WorldToCellY(item.Position.Y, top, unitsPerRow);
                 if (!IsInside(cellX, cellY)) continue;
 
-                var glyph = GetGlyph(item.Shape, item.Solid);
-                var color = GetColor(item.Kind, item.Solid);
-                SetCell(cellX, cellY, glyph, color);
+                SetCell(cellX, cellY, GetGlyph(item.Shape, item.Solid), GetColor(item.Kind, item.Solid));
             }
         }
 
@@ -124,39 +122,45 @@ namespace HWorld.Console
 
         private void WriteFrame(World world, WorldActor player)
         {
-            try
-            {
-                System.Console.SetCursorPosition(0, 0);
-            }
-            catch
-            {
-                System.Console.Clear();
-            }
+            _frame.Clear();
+            _frame.Append("\x1b[H");
+            _frame.Append("HWorld Console | ");
+            _frame.Append(world.SimulationTime.ToString("0.00"));
+            _frame.Append("s | player ");
+            _frame.Append(player == null ? "0.0, 0.0" : player.Position.X.ToString("0.0") + ", " + player.Position.Y.ToString("0.0"));
+            _frame.Append(" | objects ");
+            _frame.Append(world.Items.Count);
+            _frame.Append(" | actors ");
+            _frame.Append(world.Actors.Count);
+            _frame.Append("\x1b[K\r\n");
 
             for (var y = 0; y < Height; y++)
             {
-                ConsoleColor activeColor = ConsoleColor.Gray;
                 for (var x = 0; x < Width; x++)
                 {
-                    if (_colors[y, x] != activeColor)
-                    {
-                        activeColor = _colors[y, x];
-                        System.Console.ForegroundColor = activeColor;
-                    }
-                    System.Console.Write(_buffer[y, x]);
+                    _frame.Append(_buffer[y, x]);
                 }
-                System.Console.WriteLine();
+                _frame.Append("\r\n");
             }
 
-            System.Console.ForegroundColor = ConsoleColor.Gray;
-            System.Console.WriteLine();
-            System.Console.WriteLine("HWorld Console | {0:0.00}s | player {1:0.0}, {2:0.0} | objects {3} | actors {4}",
-                world.SimulationTime,
-                player == null ? 0 : player.Position.X,
-                player == null ? 0 : player.Position.Y,
-                world.Items.Count,
-                world.Actors.Count);
-            System.Console.WriteLine("WASD / arrows move | +/- zoom | Q quit");
+            _frame.Append("WASD / arrows move | +/- zoom | Q or Esc quit");
+            _frame.Append("\x1b[K\r\n");
+            _frame.Append("\x1b[0m");
+
+            try
+            {
+                System.Console.Write(_frame.ToString());
+            }
+            catch
+            {
+                // If a host terminal does not accept VT control sequences, fall back to a plain write.
+                try
+                {
+                    System.Console.SetCursorPosition(0, 0);
+                    System.Console.Write(_frame.ToString().Replace("\x1b[H", string.Empty).Replace("\x1b[K", string.Empty).Replace("\x1b[0m", string.Empty));
+                }
+                catch { }
+            }
         }
 
         private int WorldToCellX(double x, double left)
@@ -185,18 +189,18 @@ namespace HWorld.Console
         {
             switch (shape)
             {
-                case WorldShapeKind.Ellipse: return '○';
-                case WorldShapeKind.Triangle: return '▲';
-                case WorldShapeKind.Diamond: return '◆';
-                case WorldShapeKind.Hexagon: return '⬢';
-                case WorldShapeKind.Star: return '★';
-                case WorldShapeKind.Tree: return '♣';
-                case WorldShapeKind.House: return '⌂';
-                case WorldShapeKind.Rock: return '●';
-                case WorldShapeKind.Flower: return '✿';
-                case WorldShapeKind.Pillar: return '▮';
-                case WorldShapeKind.Cross: return '✚';
-                default: return solid ? '█' : '□';
+                case WorldShapeKind.Ellipse: return 'o';
+                case WorldShapeKind.Triangle: return '^';
+                case WorldShapeKind.Diamond: return '*';
+                case WorldShapeKind.Hexagon: return 'O';
+                case WorldShapeKind.Star: return '*';
+                case WorldShapeKind.Tree: return 'T';
+                case WorldShapeKind.House: return 'H';
+                case WorldShapeKind.Rock: return 'R';
+                case WorldShapeKind.Flower: return 'f';
+                case WorldShapeKind.Pillar: return '#';
+                case WorldShapeKind.Cross: return '+';
+                default: return solid ? '#' : 'o';
             }
         }
 
