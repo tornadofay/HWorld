@@ -9,6 +9,7 @@ namespace HWorld.Console
     {
         private static void Main()
         {
+            try { System.Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { }
             System.Console.CursorVisible = false;
 
             var world = CreateDemoWorld();
@@ -30,9 +31,8 @@ namespace HWorld.Console
                     var now = stopwatch.Elapsed.TotalSeconds;
                     var delta = Math.Min(0.05, Math.Max(0, now - previous));
                     previous = now;
-
-                    MovePlayer(world, player, delta);
                     world.Update(delta);
+
                     renderer.Render(world, player);
                     Thread.Sleep(16);
                 }
@@ -89,23 +89,24 @@ namespace HWorld.Console
             while (System.Console.KeyAvailable)
             {
                 var key = System.Console.ReadKey(true);
+                const double inputSeconds = 1.0 / 30.0;
                 switch (key.Key)
                 {
                     case ConsoleKey.W:
                     case ConsoleKey.UpArrow:
-                        SetDirection(0, -1);
+                        world.MoveActor(player.Id, 0, -1, inputSeconds);
                         break;
                     case ConsoleKey.S:
                     case ConsoleKey.DownArrow:
-                        SetDirection(0, 1);
+                        world.MoveActor(player.Id, 0, 1, inputSeconds);
                         break;
                     case ConsoleKey.A:
                     case ConsoleKey.LeftArrow:
-                        SetDirection(-1, 0);
+                        world.MoveActor(player.Id, -1, 0, inputSeconds);
                         break;
                     case ConsoleKey.D:
                     case ConsoleKey.RightArrow:
-                        SetDirection(1, 0);
+                        world.MoveActor(player.Id, 1, 0, inputSeconds);
                         break;
                     case ConsoleKey.Add:
                     case ConsoleKey.OemPlus:
@@ -121,23 +122,6 @@ namespace HWorld.Console
                         break;
                 }
             }
-        }
-
-        private static double _moveX;
-        private static double _moveY;
-
-        private static void SetDirection(double x, double y)
-        {
-            _moveX = x;
-            _moveY = y;
-        }
-
-        private static void MovePlayer(World world, WorldActor player, double deltaSeconds)
-        {
-            if (Math.Abs(_moveX) < double.Epsilon && Math.Abs(_moveY) < double.Epsilon)
-                return;
-
-            world.MoveActor(player.Id, _moveX, _moveY, deltaSeconds);
         }
 
         private static int GetWindowWidth()
