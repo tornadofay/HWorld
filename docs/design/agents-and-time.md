@@ -4,38 +4,47 @@
 
 HWorld is not turn-based by default.
 
-The simulation clock proceeds independently of LLM request latency.
+The simulation clock proceeds independently of external decision latency. Phase 3 establishes deterministic local actor behavior before asynchronous model scheduling is introduced.
 
-## Agent cognition
+## Phase 3 actor behavior
 
-Each agent can have its own:
+Each actor can now own:
 
-- observation cadence
-- decision cadence
-- maximum concurrent thought requests
-- timeout
-- action horizon
-- reasoning provider/model
+- its own physical state
+- its own action queue
+- its own optional non-LLM controller
+- its own geometry sensor instance
 
-Example:
+A controller is not an LLM integration. It is a deterministic behavior input that requests validated world actions such as `MOVE`, `TURN` and `WAIT`.
 
-```text
-Agent A: observe 10 Hz, decide up to 4 Hz
-Agent B: observe 5 Hz, decide up to 1 Hz
-Agent C: event-driven decisions only
-```
+The world remains authoritative over physical execution. A controller cannot directly move an actor, modify simulation time, or bypass collision and bounds rules.
 
-## Slow agents
+## Deterministic update order
 
-If an agent takes 2 seconds to respond, the world does not freeze. Its previously committed action continues or expires according to action policy.
+During `World.Update(deltaSeconds)`:
+
+1. actors are visited in actor-list order;
+2. idle actors with controllers may enqueue their next action;
+3. one active action is executed for each actor in that same order;
+4. simulation time advances once for the world update.
+
+This deterministic ordering is intended for repeatable experiments and will remain separate from the future asynchronous scheduling mode.
 
 ## Action model
 
-Prefer high-level validated actions:
+The current pre-AI action subset is:
 
 ```text
 MOVE(direction, duration)
 TURN(angle)
+WAIT(duration)
+```
+
+Movement directions are normalized before execution, and the actor's speed remains authoritative. Collisions with solid world items and other colliding actors are enforced by the world.
+
+Future richer actions may include:
+
+```text
 LOOK()
 INSPECT(objectId)
 GRAB(objectId)
@@ -44,13 +53,21 @@ USE(itemId, targetId)
 DROP(itemId)
 ```
 
-The engine validates reachability, collision, ownership, inventory and other constraints.
+## Actor-specific perception
+
+Each actor can own a separate geometry sensor with its own observation settings. Actor-to-actor perception uses the same anonymous geometry observation format as item perception and excludes the observing actor.
+
+## Slow agents
+
+Asynchronous model latency is not implemented in Phase 3. The world has no dependency on an LLM or provider, so a controller's execution cannot block the simulation clock.
+
+Phase 4 introduces the actual separation between decision time and simulation time, including slow external decisions, action horizons, cancellation and timeout behavior.
 
 ## Event-driven cognition
 
-Not every tick should require an LLM.
+Not every simulation tick should require an LLM.
 
-Agents can wake an expensive reasoning process when events occur:
+Future external cognition may wake when events occur:
 
 - novel object
 - unexpected collision
@@ -66,7 +83,7 @@ Routine behavior can remain local and cheap.
 
 The framework should support both:
 
-1. Realistic asynchronous mode where latency matters.
-2. Controlled experimental mode where actions are evaluated at synchronized simulation checkpoints.
+1. realistic asynchronous mode where external decision latency matters;
+2. controlled experimental mode where actions are evaluated at synchronized simulation checkpoints.
 
-Both modes should record the timing information so results can be compared.
+Both modes should record timing information so results can be compared. This belongs to Phase 4 and later, not the Phase 3 deterministic controller layer.
