@@ -176,7 +176,7 @@ namespace HWorld.Example
 
             if (Mode == CanvasMode.Build && e.Button == MouseButtons.Right)
             {
-                var item = _world.FindItemAt(ScreenToWorld(e.Location));
+                var item = _world.FindItemAt(new WorldPoint(ScreenToWorld(e.Location).X, ScreenToWorld(e.Location).Y));
                 if (item != null)
                 {
                     _world.RemoveItem(item.Id);
@@ -239,7 +239,7 @@ namespace HWorld.Example
             var step = Math.Max(1, (int)Math.Ceiling(20f / Math.Max(scale, 0.01f)));
             var major = step * 5;
             using (var grid = new Pen(Color.FromArgb(17, 255, 255, 255)))
-            using (var majorPen = new Pen(Color.FromArgb(34, 255, 255, 255, 255)))
+            using (var majorPen = new Pen(Color.FromArgb(34, 255, 255, 255)))
             {
                 for (int x = 0; x <= _world.Width; x += step)
                 {
