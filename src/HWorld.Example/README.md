@@ -1,20 +1,19 @@
-# HWorld Example
+# HWorld.Example
 
-A small WinForms application used to exercise the HWorld simulation core without requiring HAgent or an LLM.
+`HWorld.Example` is the test harness for the HWorld libraries.
 
-The example provides a professional desktop shell around the world: simulation controls, a GDI+ world viewport, camera/debug information, and status telemetry.
+It is intentionally small. It does not own the GDI renderer, the console renderer, or the world designer.
 
-The example intentionally treats the world as authoritative and the renderer as a view. It is the first practical test bed for the renderer-independent simulation core.
+## Test entry points
 
-## Current scope
+- **Design World** — opens `HWorld.WinForms.WorldDesignerForm`.
+- **Run GDI** — opens `HWorld.WinForms.GdiWorldForm` using the GDI+ renderer.
+- **Run Console** — runs `HWorld.Console.ConsoleWorldRunner`.
 
-- Create and run a deterministic 2D world.
-- Render world items with GDI+.
-- Pan and zoom the world view.
-- Pause/resume simulation.
-- Step the simulation manually.
-- Reset the demo world.
-- Display simulation time and item count.
-- Keep the project independent from HAgent.
+All three paths exercise the same renderer-independent `HWorld.Core` concepts while using different presentation layers.
 
-LLM integration, cameras, memory, tools, and multi-agent behavior are deliberately not required by this example yet.
+## Project responsibility
+
+`HWorld.Example` may contain sample/test world factories and test scenarios.
+
+It must not accumulate reusable rendering, designer, or simulation infrastructure that belongs in the library projects.
