@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using HWorld.Core.Geometry;
 
 namespace HWorld.Core.World
 {
@@ -26,6 +25,8 @@ namespace HWorld.Core.World
         public string Name { get; set; }
         public WorldShapeKind Shape { get; set; }
         public byte VisualVariant { get; set; }
+        public bool Interactable { get; set; }
+        public string InteractionLabel { get; set; }
     }
 
     public sealed class WorldActorSnapshot
