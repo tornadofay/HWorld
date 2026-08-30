@@ -63,24 +63,8 @@ namespace HWorld.Example
         public event EventHandler WorldEdited;
         public event EventHandler SelectionChanged;
 
-        public World World
-        {
-            get { return _world; }
-            set
-            {
-                _world = value;
-                _selectedItem = null;
-                FitWorld();
-                Invalidate();
-            }
-        }
-
-        public WorldActor Player
-        {
-            get { return _player; }
-            set { _player = value; Invalidate(); }
-        }
-
+        public World World { get { return _world; } set { _world = value; _selectedItem = null; FitWorld(); Invalidate(); } }
+        public WorldActor Player { get { return _player; } set { _player = value; Invalidate(); } }
         public CanvasMode Mode { get; set; }
         public string BuildKind { get; set; } = "object";
         public WorldShapeKind BuildShape { get; set; } = WorldShapeKind.Rectangle;
@@ -101,6 +85,27 @@ namespace HWorld.Example
             Invalidate();
         }
 
+        public void DeleteSelectedItem()
+        {
+            if (_world == null || _selectedItem == null) return;
+            var id = _selectedItem.Id;
+            SelectItem(null);
+            _world.RemoveItem(id);
+            WorldEdited?.Invoke(this, EventArgs.Empty);
+            Invalidate();
+        }
+
+        public void ClampSelectedItemToWorld()
+        {
+            if (_world == null || _selectedItem == null) return;
+            var item = _selectedItem;
+            var maxX = Math.Max(0.0, _world.Width - item.Width);
+            var maxY = Math.Max(0.0, _world.Height - item.Height);
+            item.Position = new WorldPoint(
+                Math.Max(0.0, Math.Min(maxX, item.Position.X)),
+                Math.Max(0.0, Math.Min(maxY, item.Position.Y)));
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
@@ -113,7 +118,6 @@ namespace HWorld.Example
             var scale = GetScale();
             var origin = new PointF(24f + _pan.X, 24f + _pan.Y);
             var worldRect = new RectangleF(origin.X, origin.Y, (float)_world.Width * scale, (float)_world.Height * scale);
-
             g.FillRectangle(GroundBrush, worldRect);
             g.DrawRectangle(WorldOutlinePen, worldRect.X, worldRect.Y, worldRect.Width, worldRect.Height);
             DrawGrid(g, scale, origin, worldRect);
@@ -161,36 +165,15 @@ namespace HWorld.Example
         private void DrawPlayer(Graphics g, float scale, PointF origin)
         {
             if (_player == null) return;
-
             var cx = origin.X + (float)_player.Position.X * scale;
             var cy = origin.Y + (float)_player.Position.Y * scale;
             var radius = Math.Max(7f, (float)Math.Min(_player.Width, _player.Height) * scale * 0.6f);
-
-            g.FillEllipse(PlayerGlow,
-                cx - radius - 5f,
-                cy - radius - 5f,
-                (radius + 5f) * 2f,
-                (radius + 5f) * 2f);
-
-            g.FillEllipse(PlayerFill,
-                cx - radius,
-                cy - radius,
-                radius * 2f,
-                radius * 2f);
-
-            g.DrawEllipse(PlayerPen,
-                cx - radius,
-                cy - radius,
-                radius * 2f,
-                radius * 2f);
-
+            g.FillEllipse(PlayerGlow, cx - radius - 5f, cy - radius - 5f, (radius + 5f) * 2f, (radius + 5f) * 2f);
+            g.FillEllipse(PlayerFill, cx - radius, cy - radius, radius * 2f, radius * 2f);
+            g.DrawEllipse(PlayerPen, cx - radius, cy - radius, radius * 2f, radius * 2f);
             var angle = (float)(_player.RotationDegrees * Math.PI / 180.0);
             var length = radius + 10f;
-            g.DrawLine(PlayerFacingPen,
-                cx,
-                cy,
-                cx + (float)Math.Cos(angle) * length,
-                cy + (float)Math.Sin(angle) * length);
+            g.DrawLine(PlayerFacingPen, cx, cy, cx + (float)Math.Cos(angle) * length, cy + (float)Math.Sin(angle) * length);
         }
 
         private void DrawSelection(Graphics g, float x, float y, float w, float h, double rotation)
@@ -205,14 +188,11 @@ namespace HWorld.Example
                 g.RotateTransform((float)rotation);
                 g.TranslateTransform(-cx, -cy);
             }
-
             g.DrawRectangle(SelectionPen, x - 3f, y - 3f, w + 6f, h + 6f);
             const float handle = 5f;
             g.FillRectangle(SelectionHandleBrush, x - handle, y - handle, handle * 2f, handle * 2f);
             g.FillRectangle(SelectionHandleBrush, x + w - handle, y + h - handle, handle * 2f, handle * 2f);
-
-            if (state != null)
-                g.Restore(state);
+            if (state != null) g.Restore(state);
         }
 
         private void DrawVectorShape(Graphics g, WorldShapeKind shape, float x, float y, float w, float h, Brush fill, Pen border)
@@ -243,7 +223,7 @@ namespace HWorld.Example
                     _roof[0] = new PointF(x + w * .05f, y + h * .38f); _roof[1] = new PointF(cx, y + h * .04f); _roof[2] = new PointF(x + w * .95f, y + h * .38f);
                     g.FillPolygon(fill, _roof); g.DrawPolygon(border, _roof); break;
                 case WorldShapeKind.Rock:
-                    _rock[0] = new PointF(x + w*.10f,y+h*.75f);_rock[1] = new PointF(x+w*.22f,y+h*.34f);_rock[2] = new PointF(x+w*.52f,y+h*.12f);_rock[3] = new PointF(x+w*.84f,y+h*.30f);_rock[4] = new PointF(x+w*.94f,y+h*.72f);_rock[5] = new PointF(x+w*.67f,y+h*.92f);_rock[6] = new PointF(x+w*.30f,y+h*.91f);
+                    _rock[0] = new PointF(x + w*.10f,y+h*.75f); _rock[1] = new PointF(x+w*.22f,y+h*.34f); _rock[2] = new PointF(x+w*.52f,y+h*.12f); _rock[3] = new PointF(x+w*.84f,y+h*.30f); _rock[4] = new PointF(x+w*.94f,y+h*.72f); _rock[5] = new PointF(x+w*.67f,y+h*.92f); _rock[6] = new PointF(x+w*.30f,y+h*.91f);
                     g.FillPolygon(fill, _rock); g.DrawPolygon(border, _rock); break;
                 case WorldShapeKind.Flower:
                     var r = Math.Min(w,h)*.22f;
@@ -260,240 +240,98 @@ namespace HWorld.Example
         private static void DrawPolygon(Graphics g, PointF[] points, int count, float cx, float cy, float radius, float rotation, Brush fill, Pen border)
         {
             var offset = rotation * (float)Math.PI / 180f;
-            for (int i = 0; i < count; i++)
-            {
-                var a = offset + i * (float)(Math.PI * 2 / count);
-                points[i] = new PointF(cx + (float)Math.Cos(a) * radius, cy + (float)Math.Sin(a) * radius);
-            }
-            g.FillPolygon(fill, points);
-            g.DrawPolygon(border, points);
+            for (int i=0;i<count;i++){var a=offset+i*(float)(Math.PI*2/count);points[i]=new PointF(cx+(float)Math.Cos(a)*radius,cy+(float)Math.Sin(a)*radius);}
+            g.FillPolygon(fill,points); g.DrawPolygon(border,points);
         }
 
         private void DrawStar(Graphics g, float cx, float cy, float radius, Brush fill, Pen border)
         {
-            for (int i = 0; i < 10; i++)
-            {
-                var r = i % 2 == 0 ? radius : radius * .43f;
-                var a = (float)(-Math.PI / 2 + i * Math.PI / 5);
-                _star[i] = new PointF(cx + (float)Math.Cos(a) * r, cy + (float)Math.Sin(a) * r);
-            }
-            g.FillPolygon(fill, _star);
-            g.DrawPolygon(border, _star);
+            for (int i=0;i<10;i++){var r=i%2==0?radius:radius*.43f;var a=(float)(-Math.PI/2+i*Math.PI/5);_star[i]=new PointF(cx+(float)Math.Cos(a)*r,cy+(float)Math.Sin(a)*r);}
+            g.FillPolygon(fill,_star); g.DrawPolygon(border,_star);
         }
 
         private static void GetPalette(WorldItem item, out SolidBrush fill, out Pen border)
         {
-            if (item.Solid) { fill = SolidFill; border = SolidPen; }
-            else if (string.Equals(item.Kind, "nature", StringComparison.OrdinalIgnoreCase)) { fill = NatureFill; border = NaturePen; }
-            else if (string.Equals(item.Kind, "resource", StringComparison.OrdinalIgnoreCase)) { fill = ResourceFill; border = ResourcePen; }
-            else if (string.Equals(item.Kind, "landmark", StringComparison.OrdinalIgnoreCase)) { fill = LandmarkFill; border = LandmarkPen; }
-            else { fill = ObjectFill; border = ObjectPen; }
+            if (item.Solid) { fill=SolidFill; border=SolidPen; }
+            else if (string.Equals(item.Kind,"nature",StringComparison.OrdinalIgnoreCase)) { fill=NatureFill;border=NaturePen; }
+            else if (string.Equals(item.Kind,"resource",StringComparison.OrdinalIgnoreCase)) { fill=ResourceFill;border=ResourcePen; }
+            else if (string.Equals(item.Kind,"landmark",StringComparison.OrdinalIgnoreCase)) { fill=LandmarkFill;border=LandmarkPen; }
+            else { fill=ObjectFill;border=ObjectPen; }
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            base.OnMouseWheel(e);
-            if (_world == null) return;
-            var before = ScreenToWorld(e.Location);
-            _zoom = Clamp(_zoom * (e.Delta > 0 ? 1.12f : 1f / 1.12f), 0.2f, 12f);
-            var after = ScreenToWorld(e.Location);
-            _pan.X += (after.X - before.X) * GetScale();
-            _pan.Y += (after.Y - before.Y) * GetScale();
-            Invalidate();
+            base.OnMouseWheel(e); if(_world==null)return;
+            var before=ScreenToWorld(e.Location);_zoom=Clamp(_zoom*(e.Delta>0?1.12f:1f/1.12f),.2f,12f);var after=ScreenToWorld(e.Location);
+            _pan.X+=(after.X-before.X)*GetScale();_pan.Y+=(after.Y-before.Y)*GetScale();Invalidate();
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            base.OnMouseDown(e);
-            Focus();
-
-            if (Mode == CanvasMode.Build && e.Button == MouseButtons.Left)
+            base.OnMouseDown(e); Focus();
+            if(Mode==CanvasMode.Build&&e.Button==MouseButtons.Left)
             {
-                var worldPoint = ScreenToWorld(e.Location);
-                var hit = _world.FindItemAt(new WorldPoint(worldPoint.X, worldPoint.Y));
-
-                if (hit != null)
+                var worldPoint=ScreenToWorld(e.Location);var hit=_world.FindItemAt(new WorldPoint(worldPoint.X,worldPoint.Y));
+                if(hit!=null){SelectItem(hit);_draggingItem=true;_dragOffset=new PointF((float)(hit.Position.X-worldPoint.X),(float)(hit.Position.Y-worldPoint.Y));Cursor=Cursors.SizeAll;return;}
+                if(worldPoint.X>=0&&worldPoint.Y>=0&&worldPoint.X<_world.Width&&worldPoint.Y<_world.Height)
                 {
-                    SelectItem(hit);
-                    _draggingItem = true;
-                    _dragOffset = new PointF((float)(hit.Position.X - worldPoint.X), (float)(hit.Position.Y - worldPoint.Y));
-                    Cursor = Cursors.SizeAll;
-                    return;
+                    var item=_world.AddItem(new WorldPoint(worldPoint.X,worldPoint.Y),BuildWidth,BuildHeight,BuildSolid);item.Kind=BuildKind;item.Name=BuildKind;item.Shape=BuildShape;SelectItem(item);WorldEdited?.Invoke(this,EventArgs.Empty);Invalidate();
                 }
-
-                if (worldPoint.X >= 0 && worldPoint.Y >= 0 && worldPoint.X < _world.Width && worldPoint.Y < _world.Height)
-                {
-                    var item = _world.AddItem(new WorldPoint(worldPoint.X, worldPoint.Y), BuildWidth, BuildHeight, BuildSolid);
-                    item.Kind = BuildKind;
-                    item.Name = BuildKind;
-                    item.Shape = BuildShape;
-                    SelectItem(item);
-                    WorldEdited?.Invoke(this, EventArgs.Empty);
-                    Invalidate();
-                }
-                else
-                {
-                    SelectItem(null);
-                }
+                else SelectItem(null);
                 return;
             }
-
-            if (Mode == CanvasMode.Build && e.Button == MouseButtons.Right)
+            if(Mode==CanvasMode.Build&&e.Button==MouseButtons.Right)
             {
-                var worldPoint = ScreenToWorld(e.Location);
-                var item = _world.FindItemAt(new WorldPoint(worldPoint.X, worldPoint.Y));
-                if (item != null)
-                {
-                    if (ReferenceEquals(item, _selectedItem))
-                        SelectItem(null);
-                    _world.RemoveItem(item.Id);
-                    WorldEdited?.Invoke(this, EventArgs.Empty);
-                    Invalidate();
-                }
+                var worldPoint=ScreenToWorld(e.Location);var item=_world.FindItemAt(new WorldPoint(worldPoint.X,worldPoint.Y));
+                if(item!=null){if(ReferenceEquals(item,_selectedItem))SelectItem(null);_world.RemoveItem(item.Id);WorldEdited?.Invoke(this,EventArgs.Empty);Invalidate();}
                 return;
             }
-
-            if ((e.Button == MouseButtons.Middle || e.Button == MouseButtons.Right) && Mode != CanvasMode.Build)
-            {
-                _panning = true;
-                _lastMouse = e.Location;
-                Cursor = Cursors.SizeAll;
-            }
+            if((e.Button==MouseButtons.Middle||e.Button==MouseButtons.Right)&&Mode!=CanvasMode.Build){_panning=true;_lastMouse=e.Location;Cursor=Cursors.SizeAll;}
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
-
-            if (_draggingItem && Mode == CanvasMode.Build && _selectedItem != null)
+            if(_draggingItem&&Mode==CanvasMode.Build&&_selectedItem!=null)
             {
-                var worldPoint = ScreenToWorld(e.Location);
-                var next = new WorldPoint(worldPoint.X + _dragOffset.X, worldPoint.Y + _dragOffset.Y);
-                var x = Math.Max(0.0, Math.Min(_world.Width - _selectedItem.Width, next.X));
-                var y = Math.Max(0.0, Math.Min(_world.Height - _selectedItem.Height, next.Y));
-                _selectedItem.Position = new WorldPoint(x, y);
-                WorldEdited?.Invoke(this, EventArgs.Empty);
-                Invalidate();
-                return;
+                var worldPoint=ScreenToWorld(e.Location);var next=new WorldPoint(worldPoint.X+_dragOffset.X,worldPoint.Y+_dragOffset.Y);
+                var x=Math.Max(0.0,Math.Min(_world.Width-_selectedItem.Width,next.X));var y=Math.Max(0.0,Math.Min(_world.Height-_selectedItem.Height,next.Y));
+                _selectedItem.Position=new WorldPoint(x,y);WorldEdited?.Invoke(this,EventArgs.Empty);Invalidate();return;
             }
-
-            if (!_panning) return;
-            _pan.X += e.X - _lastMouse.X;
-            _pan.Y += e.Y - _lastMouse.Y;
-            _lastMouse = e.Location;
-            Invalidate();
+            if(!_panning)return;_pan.X+=e.X-_lastMouse.X;_pan.Y+=e.Y-_lastMouse.Y;_lastMouse=e.Location;Invalidate();
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            if (e.Button == MouseButtons.Left && _draggingItem)
-            {
-                _draggingItem = false;
-                Cursor = Cursors.Default;
-                return;
-            }
-
-            if (e.Button == MouseButtons.Middle || e.Button == MouseButtons.Right)
-            {
-                _panning = false;
-                Cursor = Cursors.Default;
-            }
+            if(e.Button==MouseButtons.Left&&_draggingItem){_draggingItem=false;Cursor=Cursors.Default;return;}
+            if(e.Button==MouseButtons.Middle||e.Button==MouseButtons.Right){_panning=false;Cursor=Cursors.Default;}
         }
 
         protected override bool IsInputKey(Keys keyData)
         {
-            if (Mode == CanvasMode.Build && (keyData == Keys.Delete || keyData == Keys.R || keyData == Keys.Q || keyData == Keys.E))
-                return true;
+            if(Mode==CanvasMode.Build&&(keyData==Keys.Delete||keyData==Keys.R||keyData==Keys.Q||keyData==Keys.E))return true;
             return base.IsInputKey(keyData);
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            base.OnKeyDown(e);
-            if (Mode != CanvasMode.Build || _selectedItem == null) return;
-
-            if (e.KeyCode == Keys.Delete)
-            {
-                var id = _selectedItem.Id;
-                SelectItem(null);
-                _world.RemoveItem(id);
-                WorldEdited?.Invoke(this, EventArgs.Empty);
-                Invalidate();
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.Q)
-            {
-                _selectedItem.RotationDegrees -= 15;
-                WorldEdited?.Invoke(this, EventArgs.Empty);
-                Invalidate();
-                e.Handled = true;
-            }
-            else if (e.KeyCode == Keys.E || e.KeyCode == Keys.R)
-            {
-                _selectedItem.RotationDegrees += 15;
-                WorldEdited?.Invoke(this, EventArgs.Empty);
-                Invalidate();
-                e.Handled = true;
-            }
+            base.OnKeyDown(e); if(Mode!=CanvasMode.Build||_selectedItem==null)return;
+            if(e.KeyCode==Keys.Delete){DeleteSelectedItem();e.Handled=true;}
+            else if(e.KeyCode==Keys.Q){_selectedItem.RotationDegrees-=15;WorldEdited?.Invoke(this,EventArgs.Empty);Invalidate();e.Handled=true;}
+            else if(e.KeyCode==Keys.E||e.KeyCode==Keys.R){_selectedItem.RotationDegrees+=15;WorldEdited?.Invoke(this,EventArgs.Empty);Invalidate();e.Handled=true;}
         }
 
         private void SelectItem(WorldItem item)
         {
-            if (ReferenceEquals(_selectedItem, item)) return;
-            _selectedItem = item;
-            SelectionChanged?.Invoke(this, EventArgs.Empty);
-            Invalidate();
+            if(ReferenceEquals(_selectedItem,item))return;_selectedItem=item;SelectionChanged?.Invoke(this,EventArgs.Empty);Invalidate();
         }
 
-        private float GetScale() { return GetBaseScale() * _zoom; }
-
-        private float GetBaseScale()
-        {
-            if (_world == null || _world.Width <= 0 || _world.Height <= 0) return 1f;
-            return Math.Max(0.05f, Math.Min((ClientSize.Width - 48f) / (float)_world.Width,
-                                            (ClientSize.Height - 48f) / (float)_world.Height));
-        }
-
-        private void FitWorld()
-        {
-            if (_world == null || ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
-            _zoom = 1f;
-            var scale = GetBaseScale();
-            var width = (float)_world.Width * scale;
-            var height = (float)_world.Height * scale;
-            _pan = new PointF((ClientSize.Width - 48f - width) / 2f,
-                              (ClientSize.Height - 48f - height) / 2f);
-        }
-
-        private void DrawGrid(Graphics g, float scale, PointF origin, RectangleF worldRect)
-        {
-            var step = Math.Max(1, (int)Math.Ceiling(20f / Math.Max(scale, 0.01f)));
-            var major = step * 5;
-            for (int x = 0; x <= _world.Width; x += step)
-            {
-                var px = origin.X + x * scale;
-                if (px >= worldRect.Left && px <= worldRect.Right)
-                    g.DrawLine(x % major == 0 ? MajorGridPen : GridPen, px, worldRect.Top, px, worldRect.Bottom);
-            }
-            for (int y = 0; y <= _world.Height; y += step)
-            {
-                var py = origin.Y + y * scale;
-                if (py >= worldRect.Top && py <= worldRect.Bottom)
-                    g.DrawLine(y % major == 0 ? MajorGridPen : GridPen, worldRect.Left, py, worldRect.Right, py);
-            }
-        }
-
-        private PointF ScreenToWorld(Point point)
-        {
-            var scale = GetScale();
-            var origin = new PointF(24f + _pan.X, 24f + _pan.Y);
-            return new PointF((point.X - origin.X) / scale, (point.Y - origin.Y) / scale);
-        }
-
-        private static float Clamp(float value, float min, float max)
-        {
-            return Math.Max(min, Math.Min(max, value));
-        }
+        private float GetScale(){return GetBaseScale()*_zoom;}
+        private float GetBaseScale(){if(_world==null||_world.Width<=0||_world.Height<=0)return 1f;return Math.Max(.05f,Math.Min((ClientSize.Width-48f)/(float)_world.Width,(ClientSize.Height-48f)/(float)_world.Height));}
+        private void FitWorld(){if(_world==null||ClientSize.Width<=0||ClientSize.Height<=0)return;_zoom=1f;var scale=GetBaseScale();var width=(float)_world.Width*scale;var height=(float)_world.Height*scale;_pan=new PointF((ClientSize.Width-48f-width)/2f,(ClientSize.Height-48f-height)/2f);}
+        private void DrawGrid(Graphics g,float scale,PointF origin,RectangleF worldRect){var step=Math.Max(1,(int)Math.Ceiling(20f/Math.Max(scale,.01f)));var major=step*5;for(int x=0;x<=_world.Width;x+=step){var px=origin.X+x*scale;if(px>=worldRect.Left&&px<=worldRect.Right)g.DrawLine(x%major==0?MajorGridPen:GridPen,px,worldRect.Top,px,worldRect.Bottom);}for(int y=0;y<=_world.Height;y+=step){var py=origin.Y+y*scale;if(py>=worldRect.Top&&py<=worldRect.Bottom)g.DrawLine(y%major==0?MajorGridPen:GridPen,worldRect.Left,py,worldRect.Right,py);}}
+        private PointF ScreenToWorld(Point point){var scale=GetScale();var origin=new PointF(24f+_pan.X,24f+_pan.Y);return new PointF((point.X-origin.X)/scale,(point.Y-origin.Y)/scale);}
+        private static float Clamp(float value,float min,float max){return Math.Max(min,Math.Min(max,value));}
     }
 }
