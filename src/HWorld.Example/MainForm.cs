@@ -194,6 +194,8 @@ namespace HWorld.Example
             _itemsValue = AddMetric(panel, "Objects");
             _playerValue = AddMetric(panel, "Player");
             _seedValue = AddMetric(panel, "Seed");
+            _zoomValue = AddMetric(panel, "Zoom");
+            _statusValue = AddMetric(panel, "Status");
 
             panel.Controls.Add(MakeSectionLabel("STORY"));
             _storyValue = MakeLabel("—", 8.5f, FontStyle.Regular, Color.FromArgb(173, 182, 193));
