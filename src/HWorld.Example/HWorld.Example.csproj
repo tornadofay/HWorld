@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
     <ProjectReference Include="..\HWorld.WinForms\HWorld.WinForms.csproj" />
+    <ProjectReference Include="..\HWorld.Console\HWorld.Console.csproj" />
   </ItemGroup>
 </Project>
