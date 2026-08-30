@@ -2,13 +2,15 @@
 
 HWorld is an independent, renderer-neutral 2D artificial-world simulation platform.
 
-It is designed for experiments where humans and AI agents inhabit the same persistent world, perceive only what their own sensors expose, interact with physical objects, remember experiences, accumulate knowledge and skills, interact socially, and potentially pass learned characteristics across generations.
+It is designed for experiments where humans and AI agents inhabit the same persistent world, perceive only what their own sensors expose, interact with physical objects, and eventually reason, remember, learn, socialize, and pass learned characteristics across generations through external cognitive systems.
 
-HWorld is intentionally **independent from HAgent during its early development**. The world must become useful and testable before any LLM integration exists. HAgent will be an optional external integration later.
+HWorld is intentionally **independent from HAgent during early development**. The world must be useful and testable before any LLM integration exists. HAgent is an optional external decision/cognition integration later.
 
 ## Current status
 
-HWorld has now reached the first substantial pre-AI prototype. The world can be authored by hand, rendered through reusable WinForms/GDI+ or console views, saved and loaded, queried through a spatial index, played by a human-controlled actor, and inspected through a geometry-based sensor.
+HWorld has reached the first substantial pre-AI prototype. The world can be authored by hand, rendered through reusable WinForms/GDI+ or console views, saved and loaded, queried through a spatial index, played by a human-controlled actor, interacted with, and inspected through a geometry-based sensor.
+
+The current work is the pre-AI multi-actor/perception laboratory foundation. Before connecting HAgent, the Example project will remain the primary test laboratory for observing what the world and sensors actually expose.
 
 Implemented today:
 
@@ -30,13 +32,16 @@ Implemented today:
 
 Not yet implemented:
 
+- Multiple independent autonomous actors
+- Actor-to-actor perception and behavior
+- Time/decision scheduling for actors with different response speeds
 - LLM/HAgent integration
-- Agent memory
+- Agent memory implementation
 - Agent hands/inventory
-- Knowledge/skills
-- Multi-agent decision-making
+- Knowledge/skills implementation
 - Generational inheritance
 - Rendered-image perception
+- Occlusion-aware perception
 
 ## Core rule
 
@@ -47,15 +52,20 @@ Not yet implemented:
                            |
         +------------------+------------------+
         |                  |                  |
-      World              Agents            Items
+      World              Actors            Items
         |                  |                  |
      Physics            Bodies          Interaction
      Collision          Sensors           State
-     Spatial Index      Memory*           Affordance*
-     Time              Knowledge*         Inventory*
-                         Skills*
+     Spatial Index      Events            Affordances
+     Time              Action results
+                           |
+                    external cognition*
+                           |
+             Memory / Knowledge / Skills
+                           |
+                         Model*
 
-                    * optional systems
+                    * optional external systems
 
                            |
                   Renderer / Viewer API
@@ -67,13 +77,14 @@ Not yet implemented:
 
 ## Project boundaries
 
-The solution is intentionally split so that rendering experiments do not become part of the simulation core.
+The solution is intentionally split so rendering experiments and cognitive systems do not become part of the simulation core.
 
 ```text
 HWorld.Core
     World / Items / Actors / Geometry
     Time / Collision / Spatial Index
-    Persistence / Perception contracts
+    Persistence / Perception / Action contracts
+    World events and authoritative state
 
 HWorld.WinForms
     Reusable WinForms controls
@@ -86,10 +97,59 @@ HWorld.Console
     Reusable console renderer/runtime
 
 HWorld.Example
-    Test harness only
+    Test harness and experiment laboratory
     Creates sample worlds
     Opens Designer / GDI / Console
+    Will expose camera observations and compact token text
+
+HAgent (external)
+    Agent execution/cognition infrastructure
+    Model/provider execution
+    Tool-call routing
+    Optional memory/knowledge/skill systems
 ```
+
+## World vs cognition
+
+HWorld must remain authoritative about **what actually exists and what actually happened**.
+
+HWorld should expose facts such as:
+
+```text
+Object 42 exists
+Object 42 damaged Actor 7
+Actor 7 moved from A to B
+Actor 3 observed these geometry records
+```
+
+HWorld does not decide what an agent remembers, believes, knows, or learns.
+
+External cognition such as HAgent may transform experience into cognition:
+
+```text
+World event
+   -> HAgent memory
+   -> HAgent knowledge/belief
+   -> HAgent skill/behavior
+   -> action request
+   -> HWorld validation
+```
+
+This prevents HWorld from becoming a second agent framework.
+
+## Perception laboratory
+
+The `HWorld.Example` project is also a research laboratory, not just a launcher.
+
+The Geometry Eye experiment should show both:
+
+1. what the observer's sensor sees visually;
+2. the **exact compact observation text** that an eventual external agent would receive;
+3. the approximate token cost of that observation.
+
+The Example should make it easy to change FOV, range, observer heading, object placement and sensor settings and immediately inspect how the observation changes.
+
+The sensor must not automatically reveal semantic object names, hidden state, exact world coordinates or off-camera information unless an experiment explicitly enables them.
 
 ## Why start with console and GDI+
 
@@ -103,6 +163,8 @@ C# world core
     -> geometry camera
     -> human player
     -> WinForms/GDI+ viewer
+    -> multi-actor laboratory
+    -> optional HAgent integration
 ```
 
 The console is not a temporary debugging toy. It is a real renderer target that can grow from a character grid into a richer ANSI/Unicode terminal presentation.
@@ -133,20 +195,20 @@ The GDI renderer may draw it as shapes, the console renderer may use characters,
 
 HWorld must run without any LLM or API key.
 
-An LLM becomes a participant later through an adapter. The LLM does not run every simulation tick and does not receive the complete world state.
+An external agent system becomes a participant later through an adapter. The model does not run every simulation tick and does not receive the complete world state unless an experiment explicitly chooses a privileged mode.
 
 The intended path is:
 
 ```text
 World
-  -> Agent sensor
+  -> agent sensor
   -> compact observation
-  -> optional reasoning
+  -> optional external cognition
   -> validated action
   -> World
 ```
 
-Different agents can use different providers/models, different cameras, different memory configurations, or no LLM at all.
+Different agents can use different providers/models, different cameras, different cognitive systems, or no LLM at all.
 
 ## Research direction
 
@@ -212,4 +274,4 @@ The human and AI should interact with the same world objects and obey the same p
 
 Do not begin with AI.
 
-First make the deterministic world dependable, testable, persistable, and renderer-independent. Build richer perception and interaction before connecting HAgent. Keep project state documented whenever a milestone changes the implementation.
+First make the deterministic world dependable, observable, testable, persistable, and renderer-independent. Build richer perception and interaction before connecting HAgent. Keep project state documented whenever a milestone changes the implementation.
