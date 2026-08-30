@@ -158,6 +158,41 @@ namespace HWorld.Example
             }
         }
 
+        private void DrawPlayer(Graphics g, float scale, PointF origin)
+        {
+            if (_player == null) return;
+
+            var cx = origin.X + (float)_player.Position.X * scale;
+            var cy = origin.Y + (float)_player.Position.Y * scale;
+            var radius = Math.Max(7f, (float)Math.Min(_player.Width, _player.Height) * scale * 0.6f);
+
+            g.FillEllipse(PlayerGlow,
+                cx - radius - 5f,
+                cy - radius - 5f,
+                (radius + 5f) * 2f,
+                (radius + 5f) * 2f);
+
+            g.FillEllipse(PlayerFill,
+                cx - radius,
+                cy - radius,
+                radius * 2f,
+                radius * 2f);
+
+            g.DrawEllipse(PlayerPen,
+                cx - radius,
+                cy - radius,
+                radius * 2f,
+                radius * 2f);
+
+            var angle = (float)(_player.RotationDegrees * Math.PI / 180.0);
+            var length = radius + 10f;
+            g.DrawLine(PlayerFacingPen,
+                cx,
+                cy,
+                cx + (float)Math.Cos(angle) * length,
+                cy + (float)Math.Sin(angle) * length);
+        }
+
         private void DrawSelection(Graphics g, float x, float y, float w, float h, double rotation)
         {
             var cx = x + w * 0.5f;
@@ -172,7 +207,7 @@ namespace HWorld.Example
             }
 
             g.DrawRectangle(SelectionPen, x - 3f, y - 3f, w + 6f, h + 6f);
-            var handle = 5f;
+            const float handle = 5f;
             g.FillRectangle(SelectionHandleBrush, x - handle, y - handle, handle * 2f, handle * 2f);
             g.FillRectangle(SelectionHandleBrush, x + w - handle, y + h - handle, handle * 2f, handle * 2f);
 
