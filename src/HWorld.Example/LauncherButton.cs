@@ -4,28 +4,31 @@ using HWorld.WinForms.Helpers.Button;
 
 namespace HWorld.Example
 {
-    /// <summary>
-    /// Example-only HButton presentation adapter.
-    /// Keeps the launcher on HButton while guaranteeing visible GDI text.
-    /// </summary>
     internal sealed class LauncherButton : HButton
     {
+        public LauncherButton()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            ButtonLeaveForeColor = Color.White;
+            ButtonEnterForeColor = Color.White;
+            ButtonDownForeColor = Color.White;
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
+            if (string.IsNullOrWhiteSpace(Text)) return;
 
-            if (string.IsNullOrEmpty(Text))
-                return;
-
-            using (var format = new StringFormat())
-            using (var brush = new SolidBrush(ButtonLeaveForeColor))
-            {
-                format.Alignment = StringAlignment.Center;
-                format.LineAlignment = StringAlignment.Center;
-                format.Trimming = StringTrimming.EllipsisCharacter;
-                format.FormatFlags = StringFormatFlags.NoWrap;
-                e.Graphics.DrawString(Text, Font, brush, ClientRectangle, format);
-            }
+            TextRenderer.DrawText(
+                e.Graphics,
+                Text,
+                Font,
+                ClientRectangle,
+                Enabled ? Color.White : SystemColors.GrayText,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter |
+                TextFormatFlags.NoPrefix |
+                TextFormatFlags.EndEllipsis);
         }
     }
 }
