@@ -3,8 +3,9 @@ using System;
 namespace HWorld.Core.Geometry
 {
     /// <summary>
-    /// Compact geometric observation of a world item relative to an observer.
-    /// It intentionally contains no semantic name or application-specific kind.
+    /// Compact geometric observation of a world entity relative to an observer.
+    /// The entity may be an item or actor. It intentionally contains no semantic
+    /// name or application-specific kind.
     /// </summary>
     public readonly struct WorldGeometryObservation
     {
