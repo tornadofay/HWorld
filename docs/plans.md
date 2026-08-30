@@ -2,6 +2,32 @@
 
 > Development rule: HWorld is implemented independently of HAgent until the world core and perception/action boundaries are proven. No LLM is required for the current pre-AI foundation.
 
+## Architecture boundary
+
+HWorld is the authoritative environment:
+
+- world state
+- physical bodies and objects
+- simulation time
+- collisions
+- spatial queries
+- observations/sensors
+- world events
+- action validation and world-side action results
+- world persistence
+
+External agent infrastructure such as HAgent is the cognition/decision layer:
+
+- model/provider execution
+- reasoning lifecycle
+- tool routing
+- optional memory systems
+- optional knowledge/wiki systems
+- optional skills/procedures
+- decision policies
+
+HWorld must expose the facts and interfaces required by those systems without implementing a second cognitive framework.
+
 ## Current state
 
 The following foundation work is complete:
@@ -22,6 +48,8 @@ The following foundation work is complete:
 - Approximate observation token estimator
 - Geometry Eye visualization
 - Clean project separation between Core, WinForms, Console and Example
+
+The `HWorld.Example` project is the test/experiment harness. It must progressively expose the internal capabilities as observable experiments rather than merely launch the renderers.
 
 ## Phase 0 — Foundation
 
@@ -86,6 +114,14 @@ Goal: allow an observer to perceive a limited local world without semantic label
 - Approximate token-cost estimator
 - GDI Geometry Eye visualization
 
+### Example laboratory deliverables
+
+- Visual Geometry Eye showing exactly what the observer sensor sees
+- Raw compact observation text panel showing the exact serializer output
+- Approximate token estimate panel
+- Camera controls for FOV/range/heading where practical
+- Clear distinction between human full-world view and observer-limited sensor view
+
 ### Remaining
 
 - Proper occlusion
@@ -111,8 +147,9 @@ Goal: establish multiple independently embodied actors before adding LLMs.
 - Basic non-LLM behavior/controller interface
 - Deterministic actor update ordering
 - Independent actor action queues
+- Example laboratory showing two or more actors simultaneously
 
-This phase should prove that several autonomous entities can share one world without sharing private perception state.
+The experiment must demonstrate that each actor can have a different sensor view while sharing the same authoritative world.
 
 ## Phase 4 — Time and decision scheduling
 
@@ -151,26 +188,45 @@ Goal: connect one actor to HAgent while keeping HWorld fully usable without it.
 - Action result feedback
 - Failure/timeout handling
 
-The HAgent integration belongs at the boundary between perception/action and the external decision engine. HWorld remains the authority over physical state.
+The integration belongs at the perception/action boundary. HWorld remains authoritative over physical state and HAgent remains an external decision/cognition system.
 
-## Phase 6 — Memory
+## Phase 6 — Cognitive integration contracts
 
 **Status: Planned**
 
-Goal: give agents persistent experience without replaying their complete history.
+Goal: expose clean interfaces for external cognitive systems without moving their implementation into HWorld.
 
-### Deliverables
+### HWorld provides
 
-- Working memory
-- Episodic memory
-- Memory store interface
-- Search/retrieval
-- Importance/salience
-- Forgetting policies
-- Memory limits
-- Tool interface for read/write memory
+- world events
+- observation snapshots
+- action results
+- relevant timestamps
+- actor identity and visibility rules
+- persistence hooks where required
 
-Memory retrieval should be selective; the complete history should not be sent to the model every turn.
+### HAgent/external cognition may provide
+
+- working memory
+- episodic memory
+- retrieval
+- forgetting
+- semantic knowledge
+- wiki-like knowledge
+- reusable skills
+- private/shared/group cognitive stores
+
+The conceptual flow is:
+
+```text
+HWorld event/observation
+        -> external cognition
+        -> memory / knowledge / skill
+        -> decision
+        -> HWorld action validation
+```
+
+HWorld should not contain the policy deciding what an agent remembers or believes.
 
 ## Phase 7 — Embodied Interaction
 
@@ -189,24 +245,30 @@ Goal: turn agents into fully embodied participants.
 - Interaction validation
 - Physical tool actions
 
-The model requests high-level actions. HWorld validates and performs them.
+The physical mechanics belong to HWorld. The choice of procedure or intention belongs to the agent/cognition layer.
 
 ## Phase 8 — Knowledge and Skills
 
-**Status: Planned**
+**Status: Planned / primarily external cognition**
 
 Goal: distinguish remembered events from reusable understanding and procedures.
 
-### Deliverables
+### HWorld responsibilities
 
-- Semantic knowledge store
-- Wiki-like knowledge representation
-- Knowledge retrieval
-- Skill representation
-- Skill invocation
-- Skill versioning
-- Provenance from experience to knowledge
-- Optional shared/group knowledge
+- provide authoritative events and observations
+- expose visibility/ownership rules
+- expose world objects and action outcomes
+
+### External cognition responsibilities
+
+- semantic knowledge store
+- wiki-like knowledge representation
+- knowledge retrieval
+- skill representation
+- skill invocation
+- skill versioning
+- provenance from experience to knowledge
+- optional shared/group knowledge
 
 ## Phase 9 — Multi-Agent Society
 
@@ -226,7 +288,7 @@ Goal: allow multiple autonomous agents to inhabit one world.
 - Group behavior
 - Reputation and social state
 
-Different agents may use different models, providers, prompt/configuration styles, cognitive rates, sensors and memories in the same simulation.
+Different agents may use different models, providers, prompt/configuration styles, cognitive rates, sensors and cognitive stores in the same simulation.
 
 ## Phase 10 — Generational Inheritance
 
@@ -246,7 +308,7 @@ Goal: explore inheritance of learned knowledge and behavioral tendencies.
 - Environmental relevance/forgetting
 - Co-evolution experiments
 
-Inheritance is experimental and configurable. It must support full inheritance, partial inheritance, cultural transmission and no inheritance.
+HWorld models the world and lineage facts. An external cognition layer determines how information is remembered, generalized, inherited, forgotten, or converted into behavior.
 
 ## Phase 11 — Advanced Perception
 
