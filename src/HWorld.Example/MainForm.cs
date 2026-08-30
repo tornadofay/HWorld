@@ -11,10 +11,10 @@ namespace HWorld.Example
     internal sealed class MainForm : Form
     {
         private readonly WorldCanvas _canvas;
-        private readonly Label _timeValue;
-        private readonly Label _itemsValue;
-        private readonly Label _statusValue;
-        private readonly Label _zoomValue;
+        private  Label _timeValue;
+        private  Label _itemsValue;
+        private  Label _statusValue;
+        private  Label _zoomValue;
         private readonly Timer _timer;
 
         private World _world;
