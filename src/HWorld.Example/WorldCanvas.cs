@@ -26,10 +26,18 @@ namespace HWorld.Example
         private static readonly Pen LandmarkPen = new Pen(Color.FromArgb(242, 218, 166, 247), 1f);
         private static readonly SolidBrush ObjectFill = new SolidBrush(Color.FromArgb(220, 71, 137, 190));
         private static readonly Pen ObjectPen = new Pen(Color.FromArgb(235, 139, 203, 246), 1f);
+        private static readonly SolidBrush DetailBrush = new SolidBrush(Color.FromArgb(230, 73, 63, 62));
         private static readonly SolidBrush PlayerGlow = new SolidBrush(Color.FromArgb(35, 102, 224, 255));
         private static readonly SolidBrush PlayerFill = new SolidBrush(Color.FromArgb(245, 93, 196, 255));
         private static readonly Pen PlayerPen = new Pen(Color.FromArgb(255, 222, 248, 255), 1.6f);
         private static readonly Pen PlayerFacingPen = new Pen(Color.White, 2f);
+
+        private readonly PointF[] _triangle = new PointF[3];
+        private readonly PointF[] _diamond = new PointF[4];
+        private readonly PointF[] _hexagon = new PointF[6];
+        private readonly PointF[] _star = new PointF[10];
+        private readonly PointF[] _rock = new PointF[7];
+        private readonly PointF[] _roof = new PointF[3];
 
         private World _world;
         private WorldActor _player;
@@ -118,7 +126,7 @@ namespace HWorld.Example
             }
         }
 
-        private static void DrawVectorShape(Graphics g, WorldShapeKind shape, float x, float y, float w, float h, Brush fill, Pen border)
+        private void DrawVectorShape(Graphics g, WorldShapeKind shape, float x, float y, float w, float h, Brush fill, Pen border)
         {
             var cx = x + w * 0.5f;
             var cy = y + h * 0.5f;
@@ -127,32 +135,32 @@ namespace HWorld.Example
                 case WorldShapeKind.Ellipse:
                     g.FillEllipse(fill, x, y, w, h); g.DrawEllipse(border, x, y, w, h); break;
                 case WorldShapeKind.Triangle:
-                    g.FillPolygon(fill, new[] { new PointF(cx, y), new PointF(x + w, y + h), new PointF(x, y + h) });
-                    g.DrawPolygon(border, new[] { new PointF(cx, y), new PointF(x + w, y + h), new PointF(x, y + h) }); break;
+                    _triangle[0] = new PointF(cx, y); _triangle[1] = new PointF(x + w, y + h); _triangle[2] = new PointF(x, y + h);
+                    g.FillPolygon(fill, _triangle); g.DrawPolygon(border, _triangle); break;
                 case WorldShapeKind.Diamond:
-                    g.FillPolygon(fill, new[] { new PointF(cx, y), new PointF(x + w, cy), new PointF(cx, y + h), new PointF(x, cy) });
-                    g.DrawPolygon(border, new[] { new PointF(cx, y), new PointF(x + w, cy), new PointF(cx, y + h), new PointF(x, cy) }); break;
+                    _diamond[0] = new PointF(cx, y); _diamond[1] = new PointF(x + w, cy); _diamond[2] = new PointF(cx, y + h); _diamond[3] = new PointF(x, cy);
+                    g.FillPolygon(fill, _diamond); g.DrawPolygon(border, _diamond); break;
                 case WorldShapeKind.Hexagon:
-                    DrawPolygon(g, 6, cx, cy, Math.Min(w, h) * 0.5f, -30f, fill, border); break;
+                    DrawPolygon(g, _hexagon, 6, cx, cy, Math.Min(w, h) * 0.5f, -30f, fill, border); break;
                 case WorldShapeKind.Star:
                     DrawStar(g, cx, cy, Math.Min(w, h) * 0.5f, fill, border); break;
                 case WorldShapeKind.Tree:
-                    g.FillRectangle(border.Brush, cx - Math.Max(2f, w * .11f), y + h * .56f, Math.Max(4f, w * .22f), h * .40f);
+                    g.FillRectangle(DetailBrush, cx - Math.Max(2f, w * .11f), y + h * .56f, Math.Max(4f, w * .22f), h * .40f);
                     g.FillEllipse(fill, x + w * .07f, y + h * .03f, w * .86f, h * .70f);
                     g.DrawEllipse(border, x + w * .07f, y + h * .03f, w * .86f, h * .70f); break;
                 case WorldShapeKind.House:
                     var body = new RectangleF(x + w * .12f, y + h * .36f, w * .76f, h * .52f);
                     g.FillRectangle(fill, body); g.DrawRectangle(border, body.X, body.Y, body.Width, body.Height);
-                    var roof = new[] { new PointF(x + w * .05f, y + h * .38f), new PointF(cx, y + h * .04f), new PointF(x + w * .95f, y + h * .38f) };
-                    g.FillPolygon(fill, roof); g.DrawPolygon(border, roof); break;
+                    _roof[0] = new PointF(x + w * .05f, y + h * .38f); _roof[1] = new PointF(cx, y + h * .04f); _roof[2] = new PointF(x + w * .95f, y + h * .38f);
+                    g.FillPolygon(fill, _roof); g.DrawPolygon(border, _roof); break;
                 case WorldShapeKind.Rock:
-                    var rock = new[] { new PointF(x + w*.10f,y+h*.75f),new PointF(x+w*.22f,y+h*.34f),new PointF(x+w*.52f,y+h*.12f),new PointF(x+w*.84f,y+h*.30f),new PointF(x+w*.94f,y+h*.72f),new PointF(x+w*.67f,y+h*.92f),new PointF(x+w*.30f,y+h*.91f) };
-                    g.FillPolygon(fill, rock); g.DrawPolygon(border, rock); break;
+                    _rock[0] = new PointF(x + w*.10f,y+h*.75f);_rock[1] = new PointF(x+w*.22f,y+h*.34f);_rock[2] = new PointF(x+w*.52f,y+h*.12f);_rock[3] = new PointF(x+w*.84f,y+h*.30f);_rock[4] = new PointF(x+w*.94f,y+h*.72f);_rock[5] = new PointF(x+w*.67f,y+h*.92f);_rock[6] = new PointF(x+w*.30f,y+h*.91f);
+                    g.FillPolygon(fill, _rock); g.DrawPolygon(border, _rock); break;
                 case WorldShapeKind.Flower:
                     var r = Math.Min(w,h)*.22f;
-                    for(int i=0;i<5;i++){var a=(float)(i*Math.PI*2/5);var px=cx+(float)Math.Cos(a)*r;var py=cy+(float)Math.Sin(a)*r;g.FillEllipse(fill,px-r,py-r,r*2,r*2);g.DrawEllipse(border,px-r,py-r,r*2,r*2);} g.FillEllipse(border.Brush,cx-r*.45f,cy-r*.45f,r*.9f,r*.9f); break;
+                    for(int i=0;i<5;i++){var a=(float)(i*Math.PI*2/5);var px=cx+(float)Math.Cos(a)*r;var py=cy+(float)Math.Sin(a)*r;g.FillEllipse(fill,px-r,py-r,r*2,r*2);g.DrawEllipse(border,px-r,py-r,r*2,r*2);} g.FillEllipse(DetailBrush,cx-r*.45f,cy-r*.45f,r*.9f,r*.9f); break;
                 case WorldShapeKind.Pillar:
-                    g.FillRectangle(fill,x+w*.22f,y+h*.14f,w*.56f,h*.72f);g.DrawRectangle(border,x+w*.22f,y+h*.14f,w*.56f,h*.72f);g.FillRectangle(border.Brush,x+w*.1f,y+h*.05f,w*.8f,Math.Max(2,h*.1f));g.FillRectangle(border.Brush,x+w*.1f,y+h*.85f,w*.8f,Math.Max(2,h*.1f)); break;
+                    g.FillRectangle(fill,x+w*.22f,y+h*.14f,w*.56f,h*.72f);g.DrawRectangle(border,x+w*.22f,y+h*.14f,w*.56f,h*.72f);g.FillRectangle(DetailBrush,x+w*.1f,y+h*.05f,w*.8f,Math.Max(2,h*.1f));g.FillRectangle(DetailBrush,x+w*.1f,y+h*.85f,w*.8f,Math.Max(2,h*.1f)); break;
                 case WorldShapeKind.Cross:
                     g.FillRectangle(fill,cx-w*.16f,y,w*.32f,h);g.FillRectangle(fill,x,cy-h*.16f,w,h*.32f);g.DrawRectangle(border,cx-w*.16f,y,w*.32f,h);g.DrawRectangle(border,x,cy-h*.16f,w,h*.32f); break;
                 default:
@@ -160,18 +168,17 @@ namespace HWorld.Example
             }
         }
 
-        private static void DrawPolygon(Graphics g, int sides, float cx, float cy, float radius, float rotation, Brush fill, Pen border)
+        private static void DrawPolygon(Graphics g, PointF[] points, int count, float cx, float cy, float radius, float rotation, Brush fill, Pen border)
         {
-            var points = new PointF[sides]; var offset = rotation * (float)Math.PI / 180f;
-            for (int i=0;i<sides;i++){var a=offset+i*(float)(Math.PI*2/sides);points[i]=new PointF(cx+(float)Math.Cos(a)*radius,cy+(float)Math.Sin(a)*radius);}
+            var offset = rotation * (float)Math.PI / 180f;
+            for (int i=0;i<count;i++){var a=offset+i*(float)(Math.PI*2/count);points[i]=new PointF(cx+(float)Math.Cos(a)*radius,cy+(float)Math.Sin(a)*radius);}
             g.FillPolygon(fill, points); g.DrawPolygon(border, points);
         }
 
-        private static void DrawStar(Graphics g, float cx, float cy, float radius, Brush fill, Pen border)
+        private void DrawStar(Graphics g, float cx, float cy, float radius, Brush fill, Pen border)
         {
-            var points = new PointF[10];
-            for (int i=0;i<10;i++){var r=i%2==0?radius:radius*.43f;var a=(float)(-Math.PI/2+i*Math.PI/5);points[i]=new PointF(cx+(float)Math.Cos(a)*r,cy+(float)Math.Sin(a)*r);}
-            g.FillPolygon(fill,points);g.DrawPolygon(border,points);
+            for (int i=0;i<10;i++){var r=i%2==0?radius:radius*.43f;var a=(float)(-Math.PI/2+i*Math.PI/5);_star[i]=new PointF(cx+(float)Math.Cos(a)*r,cy+(float)Math.Sin(a)*r);}
+            g.FillPolygon(fill,_star);g.DrawPolygon(border,_star);
         }
 
         private static void GetPalette(WorldItem item, out SolidBrush fill, out Pen border)
@@ -189,7 +196,6 @@ namespace HWorld.Example
             var before=ScreenToWorld(e.Location); _zoom=Clamp(_zoom*(e.Delta>0?1.12f:1f/1.12f),.2f,12f); var after=ScreenToWorld(e.Location);
             _pan.X+=(after.X-before.X)*GetScale();_pan.Y+=(after.Y-before.Y)*GetScale();Invalidate();
         }
-
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);Focus();
@@ -199,7 +205,6 @@ namespace HWorld.Example
         }
         protected override void OnMouseMove(MouseEventArgs e){base.OnMouseMove(e);if(!_panning)return;_pan.X+=e.X-_lastMouse.X;_pan.Y+=e.Y-_lastMouse.Y;_lastMouse=e.Location;Invalidate();}
         protected override void OnMouseUp(MouseEventArgs e){base.OnMouseUp(e);if(e.Button==MouseButtons.Middle||e.Button==MouseButtons.Right){_panning=false;Cursor=Cursors.Default;}}
-
         private float GetScale()=>GetBaseScale()*_zoom;
         private float GetBaseScale(){if(_world==null||_world.Width<=0||_world.Height<=0)return 1f;return Math.Max(.05f,Math.Min((ClientSize.Width-48f)/(float)_world.Width,(ClientSize.Height-48f)/(float)_world.Height));}
         private void FitWorld(){if(_world==null||ClientSize.Width<=0||ClientSize.Height<=0)return;_zoom=1f;var scale=GetBaseScale();var width=(float)_world.Width*scale;var height=(float)_world.Height*scale;_pan=new PointF((ClientSize.Width-48f-width)/2f,(ClientSize.Height-48f-height)/2f);}
