@@ -4,7 +4,6 @@ using System.Windows.Forms;
 using HWorld.Core.World;
 using HWorld.WinForms;
 using HWorld.WinForms.Helpers;
-using HWorld.WinForms.Helpers.Button;
 using HWorld.Console;
 
 namespace HWorld.Example
@@ -44,7 +43,7 @@ namespace HWorld.Example
                 AllowHelp = true
             };
             header.PerformOnClose += delegate { Close(); };
-            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "This project is intentionally small. It exercises HWorld.Core and the renderer libraries without owning their implementation.\r\n\r\nDesign World opens the reusable WinForms designer.\r\nRun GDI opens the reusable GDI+ runtime.\r\nRun Console opens the reusable console runtime.", "HWorld.Example"); };
+            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "Design World opens the reusable WinForms designer.\r\nRun GDI opens the reusable GDI+ runtime.\r\nRun Console opens the reusable console runtime.", "HWorld.Example"); };
             root.Controls.Add(header, 0, 0);
 
             var center = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = Color.Transparent };
@@ -81,9 +80,9 @@ namespace HWorld.Example
             root.Controls.Add(status, 0, 2);
         }
 
-        private static HButton MakeLauncherButton(string text)
+        private static LauncherButton MakeLauncherButton(string text)
         {
-            return new HButton
+            return new LauncherButton
             {
                 Text = text,
                 Dock = DockStyle.Fill,
