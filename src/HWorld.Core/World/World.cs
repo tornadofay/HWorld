@@ -215,7 +215,15 @@ namespace HWorld.Core.World
                 switch (action.Kind)
                 {
                     case WorldActorActionKind.Move:
-                        MoveActor(actor.Id, action.X * deltaSeconds, action.Y * deltaSeconds, deltaSeconds);
+                        var dx = action.X;
+                        var dy = action.Y;
+                        var directionLength = Math.Sqrt(dx * dx + dy * dy);
+                        if (directionLength > 0.000001)
+                        {
+                            dx /= directionLength;
+                            dy /= directionLength;
+                            MoveActor(actor.Id, dx * deltaSeconds, dy * deltaSeconds, deltaSeconds);
+                        }
                         actor.ConsumeActionTime(deltaSeconds);
                         break;
                     case WorldActorActionKind.Turn:
