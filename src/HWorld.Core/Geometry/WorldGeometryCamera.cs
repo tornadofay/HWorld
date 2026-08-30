@@ -12,6 +12,7 @@ namespace HWorld.Core.Geometry
     public sealed class WorldGeometryCamera
     {
         private readonly List<WorldItem> _candidateBuffer = new List<WorldItem>(32);
+        private readonly List<WorldActor> _actorBuffer = new List<WorldActor>(8);
 
         public WorldGeometryCamera(double range = 50.0, double fieldOfViewDegrees = 90.0)
         {
@@ -22,6 +23,7 @@ namespace HWorld.Core.Geometry
         public double Range { get; set; }
         public double FieldOfViewDegrees { get; set; }
         public bool IncludeSolidState { get; set; } = true;
+        public bool IncludeActors { get; set; } = true;
 
         /// <summary>
         /// Fills the supplied observation buffer. The buffer is cleared first.
@@ -47,29 +49,63 @@ namespace HWorld.Core.Geometry
             for (int i = 0; i < _candidateBuffer.Count; i++)
             {
                 var item = _candidateBuffer[i];
-                var centerX = item.Position.X + item.Width * 0.5;
-                var centerY = item.Position.Y + item.Height * 0.5;
-                var dx = centerX - observer.Position.X;
-                var dy = centerY - observer.Position.Y;
-                var distance = Math.Sqrt(dx * dx + dy * dy);
-                if (distance <= 0.000001 || distance > Range) continue;
+                AddObservation(observations, observer, item.Id,
+                    item.Position.X + item.Width * 0.5,
+                    item.Position.Y + item.Height * 0.5,
+                    item.Width, item.Height, item.RotationDegrees, IncludeSolidState && item.Solid, halfFov);
+            }
 
-                var bearing = NormalizeAngle(Math.Atan2(dy, dx) * 180.0 / Math.PI - observer.RotationDegrees);
-                if (Math.Abs(bearing) > halfFov) continue;
+            if (IncludeActors)
+            {
+                _actorBuffer.Clear();
+                for (int i = 0; i < world.Actors.Count; i++)
+                {
+                    var actor = world.Actors[i];
+                    if (actor.Id != observer.Id) _actorBuffer.Add(actor);
+                }
 
-                observations.Add(new WorldGeometryObservation(
-                    item.Id,
-                    dx,
-                    dy,
-                    distance,
-                    bearing,
-                    item.Width,
-                    item.Height,
-                    item.RotationDegrees,
-                    IncludeSolidState && item.Solid));
+                for (int i = 0; i < _actorBuffer.Count; i++)
+                {
+                    var actor = _actorBuffer[i];
+                    AddObservation(observations, observer, actor.Id,
+                        actor.Position.X, actor.Position.Y,
+                        actor.Width, actor.Height, actor.RotationDegrees, false, halfFov);
+                }
             }
 
             return observations.Count;
+        }
+
+        private static void AddObservation(
+            IList<WorldGeometryObservation> observations,
+            WorldActor observer,
+            Guid entityId,
+            double centerX,
+            double centerY,
+            double width,
+            double height,
+            double rotationDegrees,
+            bool solid,
+            double halfFov)
+        {
+            var dx = centerX - observer.Position.X;
+            var dy = centerY - observer.Position.Y;
+            var distance = Math.Sqrt(dx * dx + dy * dy);
+            if (distance <= 0.000001 || double.IsNaN(distance) || double.IsInfinity(distance)) return;
+
+            var bearing = NormalizeAngle(Math.Atan2(dy, dx) * 180.0 / Math.PI - observer.RotationDegrees);
+            if (Math.Abs(bearing) > halfFov) return;
+
+            observations.Add(new WorldGeometryObservation(
+                entityId,
+                dx,
+                dy,
+                distance,
+                bearing,
+                width,
+                height,
+                rotationDegrees,
+                solid));
         }
 
         private static double NormalizeAngle(double degrees)

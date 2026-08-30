@@ -83,9 +83,7 @@ namespace HWorld.WinForms.Rendering
             using (var wedge = new GraphicsPath())
             {
                 var left = heading - halfFov * Math.PI / 180.0;
-                var right = heading + halfFov * Math.PI / 180.0;
                 var pLeft = new PointF(cx + (float)Math.Cos(left) * rangePx, cy + (float)Math.Sin(left) * rangePx);
-                var pRight = new PointF(cx + (float)Math.Cos(right) * rangePx, cy + (float)Math.Sin(right) * rangePx);
                 wedge.AddLine(new PointF(cx, cy), pLeft);
                 wedge.AddArc(cx - rangePx, cy - rangePx, rangePx * 2f, rangePx * 2f, (float)(left * 180.0 / Math.PI), (float)(Camera.FieldOfViewDegrees));
                 wedge.CloseFigure();
@@ -122,7 +120,7 @@ namespace HWorld.WinForms.Rendering
             using (var font = new Font("Segoe UI", 9f, FontStyle.Bold))
             {
                 g.DrawString("GEOMETRY SENSOR", font, Brushes.White, 12f, 12f);
-                g.DrawString(string.Format("FOV {0:0}°   Range {1:0.0}   Objects {2}", Camera.FieldOfViewDegrees, Camera.Range, _observations.Count), font, Brushes.Gainsboro, 12f, 32f);
+                g.DrawString(string.Format("FOV {0:0}°   Range {1:0.0}   Entities {2}", Camera.FieldOfViewDegrees, Camera.Range, _observations.Count), font, Brushes.Gainsboro, 12f, 32f);
             }
         }
 
