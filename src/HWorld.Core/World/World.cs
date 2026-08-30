@@ -73,6 +73,7 @@ namespace HWorld.Core.World
             var actor = new WorldActor(Guid.NewGuid(), position) { Width = width, Height = height, Speed = speed };
             if (!IsInsideWorld(actor, position)) throw new ArgumentOutOfRangeException(nameof(position));
             if (actor.Collides && IntersectsSolidItem(actor, position)) throw new InvalidOperationException("The actor cannot be spawned inside a solid world item.");
+            if (actor.Collides && IntersectsCollidingActor(actor, position)) throw new InvalidOperationException("The actor cannot be spawned inside another colliding actor.");
             _actors.Add(actor);
             return actor;
         }
@@ -84,6 +85,8 @@ namespace HWorld.Core.World
             if (actor.Height <= 0) throw new ArgumentOutOfRangeException(nameof(actor));
             if (actor.Speed < 0) throw new ArgumentOutOfRangeException(nameof(actor));
             if (!IsInsideWorld(actor, actor.Position)) throw new ArgumentOutOfRangeException(nameof(actor));
+            if (actor.Collides && IntersectsSolidItem(actor, actor.Position)) throw new InvalidOperationException("The restored actor cannot occupy a solid world item.");
+            if (actor.Collides && IntersectsCollidingActor(actor, actor.Position)) throw new InvalidOperationException("The restored actor cannot overlap another colliding actor.");
             _actors.Add(actor);
             return actor;
         }
@@ -123,6 +126,27 @@ namespace HWorld.Core.World
             if (CanOccupy(actor, yTarget)) { actor.Position = yTarget; moved = moved || Math.Abs(deltaY) > 0.000001; }
             if (moved) actor.RotationDegrees = Math.Atan2(deltaY, deltaX) * 180.0 / Math.PI;
             return moved;
+        }
+
+        public void EnqueueMove(Guid actorId, double directionX, double directionY, double durationSeconds)
+        {
+            if (durationSeconds <= 0) throw new ArgumentOutOfRangeException(nameof(durationSeconds));
+            var actor = FindRequiredActor(actorId);
+            if (Math.Abs(directionX) < 0.000001 && Math.Abs(directionY) < 0.000001) throw new ArgumentException("A move direction cannot be zero.");
+            actor.EnqueueAction(new WorldActorAction(WorldActorActionKind.Move, directionX, directionY, durationSeconds));
+        }
+
+        public void EnqueueTurn(Guid actorId, double deltaDegrees)
+        {
+            var actor = FindRequiredActor(actorId);
+            actor.EnqueueAction(new WorldActorAction(WorldActorActionKind.Turn, deltaDegrees, 0, 0));
+        }
+
+        public void EnqueueWait(Guid actorId, double durationSeconds)
+        {
+            if (durationSeconds <= 0) throw new ArgumentOutOfRangeException(nameof(durationSeconds));
+            var actor = FindRequiredActor(actorId);
+            actor.EnqueueAction(new WorldActorAction(WorldActorActionKind.Wait, 0, 0, durationSeconds));
         }
 
         public WorldActor FindActor(Guid id)
@@ -174,6 +198,36 @@ namespace HWorld.Core.World
         public void Update(double deltaSeconds)
         {
             if (deltaSeconds < 0) throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
+
+            for (int i = 0; i < _actors.Count; i++)
+            {
+                var actor = _actors[i];
+                if (actor.Controller == null || actor.IsActionActive || actor.PendingActionCount > 0) continue;
+                actor.Controller.Update(new WorldActorControllerContext(this, actor, deltaSeconds));
+            }
+
+            for (int i = 0; i < _actors.Count; i++)
+            {
+                var actor = _actors[i];
+                if (!actor.TryStartNextAction()) continue;
+
+                var action = actor.ActiveAction;
+                switch (action.Kind)
+                {
+                    case WorldActorActionKind.Move:
+                        MoveActor(actor.Id, action.X * deltaSeconds, action.Y * deltaSeconds, deltaSeconds);
+                        actor.ConsumeActionTime(deltaSeconds);
+                        break;
+                    case WorldActorActionKind.Turn:
+                        actor.RotationDegrees += action.X;
+                        actor.ConsumeActionTime(action.DurationSeconds <= 0 ? 0.000001 : action.DurationSeconds);
+                        break;
+                    case WorldActorActionKind.Wait:
+                        actor.ConsumeActionTime(deltaSeconds);
+                        break;
+                }
+            }
+
             SimulationTime += deltaSeconds;
         }
 
@@ -183,10 +237,18 @@ namespace HWorld.Core.World
             SimulationTime = value;
         }
 
+        private WorldActor FindRequiredActor(Guid id)
+        {
+            var actor = FindActor(id);
+            if (actor == null) throw new ArgumentException("Unknown actor.", nameof(id));
+            return actor;
+        }
+
         private bool CanOccupy(WorldActor actor, WorldPoint center)
         {
             if (!IsInsideWorld(actor, center)) return false;
-            return !actor.Collides || !IntersectsSolidItem(actor, center);
+            if (!actor.Collides) return true;
+            return !IntersectsSolidItem(actor, center) && !IntersectsCollidingActor(actor, center);
         }
 
         private bool IsInsideWorld(WorldActor actor, WorldPoint center)
@@ -211,6 +273,26 @@ namespace HWorld.Core.World
                 double by1 = item.Position.Y;
                 double bx2 = item.Position.X + item.Width;
                 double by2 = item.Position.Y + item.Height;
+                if (minX < bx2 && maxX > bx1 && minY < by2 && maxY > by1) return true;
+            }
+            return false;
+        }
+
+        private bool IntersectsCollidingActor(WorldActor actor, WorldPoint center)
+        {
+            double minX = center.X - actor.Width / 2.0;
+            double minY = center.Y - actor.Height / 2.0;
+            double maxX = center.X + actor.Width / 2.0;
+            double maxY = center.Y + actor.Height / 2.0;
+
+            for (int i = 0; i < _actors.Count; i++)
+            {
+                var other = _actors[i];
+                if (other.Id == actor.Id || !other.Collides) continue;
+                double bx1 = other.Position.X - other.Width / 2.0;
+                double by1 = other.Position.Y - other.Height / 2.0;
+                double bx2 = other.Position.X + other.Width / 2.0;
+                double by2 = other.Position.Y + other.Height / 2.0;
                 if (minX < bx2 && maxX > bx1 && minY < by2 && maxY > by1) return true;
             }
             return false;
