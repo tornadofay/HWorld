@@ -8,6 +8,7 @@ namespace HWorld.Core.World
     {
         private readonly List<WorldItem> _items = new List<WorldItem>();
         private readonly List<WorldActor> _actors = new List<WorldActor>();
+        private readonly WorldSpatialIndex _spatialIndex;
 
         public World(double width, double height)
         {
@@ -16,6 +17,7 @@ namespace HWorld.Core.World
 
             Width = width;
             Height = height;
+            _spatialIndex = new WorldSpatialIndex(width, height);
         }
 
         public double Width { get; }
@@ -23,6 +25,7 @@ namespace HWorld.Core.World
         public double SimulationTime { get; private set; }
         public IReadOnlyList<WorldItem> Items => _items;
         public IReadOnlyList<WorldActor> Actors => _actors;
+        public WorldSpatialIndex SpatialIndex => _spatialIndex;
 
         public WorldItem AddItem(WorldPoint position, double width = 1, double height = 1, bool solid = false)
         {
@@ -37,6 +40,7 @@ namespace HWorld.Core.World
             };
 
             _items.Add(item);
+            _spatialIndex.Add(item);
             return item;
         }
 
@@ -46,6 +50,7 @@ namespace HWorld.Core.World
             if (item.Width <= 0) throw new ArgumentOutOfRangeException(nameof(item));
             if (item.Height <= 0) throw new ArgumentOutOfRangeException(nameof(item));
             _items.Add(item);
+            _spatialIndex.Add(item);
             return item;
         }
 
@@ -56,11 +61,21 @@ namespace HWorld.Core.World
                 if (_items[i].Id == id)
                 {
                     _items.RemoveAt(i);
+                    _spatialIndex.Remove(id);
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Tells the world that an item's position or size changed outside the world API.
+        /// </summary>
+        public void NotifyItemChanged(WorldItem item)
+        {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+            _spatialIndex.Update(item);
         }
 
         public WorldActor AddActor(WorldPoint position, double width = 1.6, double height = 1.6, double speed = 5.0)
@@ -132,7 +147,6 @@ namespace HWorld.Core.World
             var target = new WorldPoint(actor.Position.X + deltaX, actor.Position.Y + deltaY);
             var moved = false;
 
-            // Resolve each axis separately so the actor can slide along walls.
             var xTarget = new WorldPoint(target.X, actor.Position.Y);
             if (CanOccupy(actor, xTarget))
             {
@@ -163,9 +177,10 @@ namespace HWorld.Core.World
 
         public WorldItem FindItemAt(WorldPoint point)
         {
-            for (int i = _items.Count - 1; i >= 0; i--)
+            var candidates = _spatialIndex.Query(point);
+            for (int i = candidates.Count - 1; i >= 0; i--)
             {
-                var item = _items[i];
+                var item = candidates[i];
                 if (Contains(item, point))
                     return item;
             }
@@ -207,14 +222,15 @@ namespace HWorld.Core.World
 
         private bool IntersectsSolidItem(WorldActor actor, WorldPoint center)
         {
-            double ax1 = center.X - actor.Width / 2.0;
-            double ay1 = center.Y - actor.Height / 2.0;
-            double ax2 = center.X + actor.Width / 2.0;
-            double ay2 = center.Y + actor.Height / 2.0;
+            double minX = center.X - actor.Width / 2.0;
+            double minY = center.Y - actor.Height / 2.0;
+            double maxX = center.X + actor.Width / 2.0;
+            double maxY = center.Y + actor.Height / 2.0;
 
-            for (int i = 0; i < _items.Count; i++)
+            var candidates = _spatialIndex.Query(new WorldPoint(minX, minY), new WorldPoint(maxX, maxY));
+            for (int i = 0; i < candidates.Count; i++)
             {
-                var item = _items[i];
+                var item = candidates[i];
                 if (!item.Solid) continue;
 
                 double bx1 = item.Position.X;
@@ -222,7 +238,7 @@ namespace HWorld.Core.World
                 double bx2 = item.Position.X + item.Width;
                 double by2 = item.Position.Y + item.Height;
 
-                if (ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1)
+                if (minX < bx2 && maxX > bx1 && minY < by2 && maxY > by1)
                     return true;
             }
 
