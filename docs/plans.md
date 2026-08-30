@@ -56,6 +56,16 @@ The following foundation work is complete:
 - Deterministic actor update ordering
 - Independent actor action queues
 - Multi-Actor Laboratory in `HWorld.Example`
+- Asynchronous actor decision provider contract
+- Immutable actor decision context snapshots
+- Per-actor decision cadence and timeout policy
+- Global concurrent-decision limit
+- Decision correlation IDs and lifecycle events
+- Cancellation and stale/late-result protection
+- Simulation-thread-only action application
+- Real-time and deterministic-checkpoint timeout modes
+- Event-driven action-completion wake-up
+- Decision Scheduling Laboratory in `HWorld.Example`
 - Clean project separation between Core, WinForms, Console and Example
 
 The `HWorld.Example` project is the test/experiment harness. It must progressively expose internal capabilities as observable experiments rather than merely launch the renderers.
@@ -171,37 +181,52 @@ Actor collision uses the existing body AABB approach with a direct actor scan. T
 
 Action queues are runtime execution state and are not persisted in world snapshots. Actor physical state remains persistable through the existing world serializer.
 
-### Verification target
-
-Before moving to Phase 4, the Example laboratory must visibly demonstrate:
-
-1. two actors updating independently;
-2. actor collision preventing overlap;
-3. actor-specific sensor instances;
-4. one actor observing the other only when the other is inside its FOV/range;
-5. the exact serializer output matching the displayed observation text;
-6. deterministic behavior across repeated runs with the same initial world/controller state.
-
 ## Phase 4 — Time and decision scheduling
 
-**Status: Next implementation phase**
+**Status: Implementation complete; local build verification pending**
 
 Goal: separate simulation time from decision/response time.
 
-### Deliverables
+### Completed deliverables
 
-- Continuous simulation clock
+- Continuous simulation clock remains owned by `World.Update`
 - Per-actor decision cadence
-- Action duration
-- Async decision lifecycle
-- Timeouts/cancellation
-- Faster/slower decision agents
-- Deterministic scheduling mode for experiments
-- Event-driven action completion
+- Action duration through the existing validated action queue
+- Asynchronous decision provider contract
+- Immutable decision context captured on the simulation thread
+- Maximum concurrent decision requests
+- Unique decision correlation IDs
+- Decision lifecycle events with completion latency
+- Timeout handling
+- Cancellation handling
+- Protection against stale/late decision results
+- Real-time latency mode
+- Deterministic-checkpoint timeout mode
+- Event-driven action-completion wake-up
+- Decision Scheduling Laboratory with intentionally different provider latencies
 
-A slow model must not freeze the world. A faster model must not receive an unfair assumption of instantaneous physical execution.
+The scheduler never blocks `World.Update`. A provider can take longer than a simulation tick while the world continues advancing.
 
-Phase 3 deliberately does not implement model latency, asynchronous thought requests, cancellation or timeout policy.
+### Boundary decisions
+
+`IWorldActorDecisionProvider` is a generic external decision boundary. It is not an HAgent dependency and does not define memory, knowledge, reasoning, or provider behavior.
+
+`WorldActorDecisionScheduler` captures immutable actor state and optional sensor text before starting background work. It applies a returned action only from the simulation thread through `World.EnqueueMove`, `World.EnqueueTurn`, or `World.EnqueueWait`.
+
+Timed-out/cancelled requests are retired. A provider that ignores cancellation can still finish, but its late result is no longer associated with the active request and cannot inject an action.
+
+Decision cadence is measured in simulation seconds. In asynchronous mode, timeout uses wall-clock time. In deterministic-checkpoint mode, timeout uses simulation time.
+
+### Laboratory verification target
+
+The Decision Scheduling Laboratory should visibly demonstrate:
+
+1. simulation time continues while decisions are in flight;
+2. actors can have different provider latencies;
+3. action execution occurs independently from provider latency;
+4. decision lifecycle events report correlation and measured latency;
+5. cancellation/timeout cannot inject stale actions;
+6. the laboratory runs without HAgent or any model provider.
 
 ## Phase 5 — First HAgent Brain
 
