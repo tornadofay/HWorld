@@ -17,5 +17,10 @@ namespace HWorld.Core.World
         public double Width { get; set; } = 1;
         public double Height { get; set; } = 1;
         public bool Solid { get; set; }
+
+        // Simulation semantics are renderer-independent. The example maps these
+        // values to visuals, while future renderers may represent them differently.
+        public string Kind { get; set; } = "object";
+        public string Name { get; set; } = "Object";
     }
 }
