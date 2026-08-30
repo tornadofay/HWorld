@@ -4,9 +4,11 @@
 
 A camera is a sensor model, not merely a painting control.
 
-The first camera should be geometry-based because it is deterministic, cheap and does not require a vision model.
+The first camera is geometry-based because it is deterministic, cheap and does not require a vision model.
 
 ## Forward-facing geometry camera
+
+`HWorld.Core.Geometry.WorldGeometryCamera` provides the first implementation.
 
 Inputs:
 
@@ -14,29 +16,38 @@ Inputs:
 - observer rotation
 - field of view
 - maximum range
-- sensor resolution/precision
-- occlusion policy
 
 Processing:
 
 ```text
 world position
  -> relative vector
- -> rotate into camera coordinates
  -> range test
- -> FOV test
- -> occlusion test
- -> project to camera space
- -> observation record
+ -> bearing/FOV test
+ -> compact geometry observation
 ```
 
-This supports the eventual rendered forward-facing camera without requiring actual image generation.
+The implementation uses the world spatial index for candidate selection and reuses an internal candidate buffer between calls. The caller supplies the observation list, avoiding a mandatory result-list allocation inside the camera.
+
+The current observation intentionally contains geometric facts only:
+
+- entity ID
+- relative X/Y
+- distance
+- bearing
+- width/height
+- rotation
+- optional solid state
+
+It does not expose the item's semantic name or application-specific kind.
+
+This is deliberately not yet an image camera and does not perform occlusion or pixel projection.
 
 ## Camera variants
 
 ### Forward camera
 
-A limited field-of-view cone in front of the agent.
+A limited field-of-view cone in front of the agent. **Implemented first as `WorldGeometryCamera`.**
 
 ### Wide camera
 
@@ -62,7 +73,7 @@ Produces pixels through GDI+ initially, with future Direct2D/DirectX/Godot/Unity
 
 ### Level 0 — geometry
 
-No semantic names.
+No semantic names. This is the first implemented perception level.
 
 ### Level 1 — compact descriptors
 
