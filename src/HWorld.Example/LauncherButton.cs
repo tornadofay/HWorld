@@ -6,7 +6,7 @@ namespace HWorld.Example
 {
     /// <summary>
     /// Example-only HButton presentation adapter.
-    /// Keeps the launcher on HButton while guaranteeing visible native GDI text.
+    /// Keeps the launcher on HButton while guaranteeing visible GDI text.
     /// </summary>
     internal sealed class LauncherButton : HButton
     {
@@ -18,15 +18,13 @@ namespace HWorld.Example
                 return;
 
             using (var format = new StringFormat())
+            using (var brush = new SolidBrush(ButtonLeaveForeColor))
             {
                 format.Alignment = StringAlignment.Center;
                 format.LineAlignment = StringAlignment.Center;
                 format.Trimming = StringTrimming.EllipsisCharacter;
-                format.FormatFlags = StringFormatFlags.NoWrap | StringFormatFlags.NoClip;
-                using (var brush = new SolidBrush(ForeColor))
-                {
-                    e.Graphics.DrawString(Text, Font, brush, ClientRectangle, format);
-                }
+                format.FormatFlags = StringFormatFlags.NoWrap;
+                e.Graphics.DrawString(Text, Font, brush, ClientRectangle, format);
             }
         }
     }
