@@ -1,8 +1,8 @@
 # HWorld Roadmap
 
-## Current release state — Pre-AI multi-actor foundation
+## Current release state — Pre-AI decision-scheduling foundation
 
-The initial deterministic-world foundation, first perception experiments, and the first multi-actor foundation are implemented. The simulation does not depend on HAgent, an LLM, a GPU, or a particular renderer.
+The deterministic world, first perception experiments, multi-actor foundation, and the first asynchronous decision-scheduling boundary are implemented. The simulation remains independent of HAgent, a specific LLM provider, a GPU, and a particular renderer.
 
 ### Completed
 
@@ -17,19 +17,16 @@ The initial deterministic-world foundation, first perception experiments, and th
 - **Geometry Eye:** forward-facing FOV/range perception with relative geometry observations
 - **Observation economy:** compact geometry serialization and approximate token estimation
 - **Multi-actor foundation:** multiple actors, independent actor state, actor action queues, deterministic controller/update order, actor collision, actor perception
+- **Decision scheduling foundation:** asynchronous decision providers, immutable decision snapshots, per-actor cadence, timeout/cancellation, correlation IDs, stale-result protection, concurrent-request limits, action-completion wake-up, and real-time/deterministic-checkpoint scheduling modes
 - **Project separation:** Core simulation, WinForms renderer/designer, Console renderer, and Example test harness are separated
 
 ## v0.1 — World Kernel
 
 **Status: Complete**
 
-A headless C# simulation can create a world, advance time, move entities, perform basic collisions, query nearby entities, interact with items, and save/load state.
-
 ## v0.2 — Console Laboratory
 
 **Status: Complete**
-
-The world can be played and inspected through a console viewport with a human-controlled actor.
 
 ## v0.3 — Geometry Eye
 
@@ -49,23 +46,11 @@ HWorld remains responsible for world state, observations, events, and action val
 
 **Status: Complete (initial viewer)**
 
-The same world is visible in Windows Forms/GDI+ with a full-world view and Geometry Eye view, plus a reusable World Designer.
-
 ## v0.6 — Cognitive Systems Boundary
 
 **Status: Planned / owned primarily by external agent infrastructure**
 
 HWorld does **not** become a second memory/agent framework. HWorld provides world events, observations, action outcomes, and persistence boundaries that an external cognitive system can consume.
-
-An external system such as HAgent may implement working memory, episodic memory, retrieval/forgetting, semantic knowledge, reusable skills, and private/shared/group cognitive stores.
-
-```text
-HWorld fact/event
-    -> external cognition
-    -> memory / knowledge / skill
-    -> decision
-    -> HWorld action validation
-```
 
 ## v0.7 — Embodied Interaction
 
@@ -83,11 +68,21 @@ External cognitive systems can consolidate experiences into reusable knowledge a
 
 **Status: Foundation complete; autonomous-agent layer remains planned**
 
-The deterministic multi-actor foundation is now implemented: multiple actors share one continuous simulation, have independent physical state, action queues, controllers and sensors, and can perceive one another through the same observation contract. The remaining v0.9 work is autonomous-agent integration, communication and social behavior, which depends on later decision/cognition infrastructure.
+The deterministic multi-actor and asynchronous decision foundations are now implemented. Multiple actors can share one continuous simulation, have independent physical state, queues, controllers and sensors, and receive decisions without blocking world time. Autonomous HAgent-backed behavior, communication and social behavior remain later work.
 
-## v1.0 — Human + AI World
+## Phase 4 — Time and decision scheduling
 
-A non-technical user can configure an AI provider with their own credentials, create/run a world, control a human character, and interact with AI agents.
+**Status: Implementation complete; local build verification pending**
+
+The generic scheduler boundary is now implemented in `HWorld.Core`. It separates simulation progression from decision latency, supports per-actor cadence and timeout policy, cancellation, lifecycle events, concurrent-request limits, stale-result protection, action-completion wake-up, and deterministic-checkpoint experiments.
+
+`HWorld.Example` includes a Decision Scheduling Laboratory with deliberately different provider latencies so the separation can be observed without HAgent.
+
+## Phase 5 — First HAgent Brain
+
+**Status: Planned**
+
+Connect `IWorldActorDecisionProvider` to HAgent through an adapter. No change to the HWorld physical authority is required.
 
 ## Post-1.0 research tracks
 
@@ -139,4 +134,4 @@ HWorld owns **what exists and what happens**. External cognition such as HAgent 
 
 ## Roadmap rule
 
-No milestone should make the simulation dependent on a particular renderer, model provider, or GPU. Changes that alter the implemented state must update the README, this roadmap, the active implementation plan, and relevant detailed docs.
+No milestone should make the simulation dependent on a particular renderer, model provider, or GPU. Changes that alter the implemented state must update the README, roadmap, active implementation plan, and relevant detailed docs.
