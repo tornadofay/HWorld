@@ -21,7 +21,6 @@ namespace HWorld.Example
         private readonly TextBox _textA;
         private readonly TextBox _textB;
         private readonly Label _status;
-        private bool _running = true;
 
         public MultiActorLabForm()
         {
@@ -146,7 +145,6 @@ namespace HWorld.Example
 
         private void OnTick(object sender, EventArgs e)
         {
-            if (!_running) return;
             const double dt = 1.0 / 30.0;
             _world.Update(dt);
             RefreshSensors();
@@ -157,8 +155,10 @@ namespace HWorld.Example
         {
             _sensorA.RefreshObservation();
             _sensorB.RefreshObservation();
-            var textA = WorldGeometryObservationSerializer.Serialize((System.Collections.Generic.IList<WorldGeometryObservation>)_sensorA.Observations);
-            var textB = WorldGeometryObservationSerializer.Serialize((System.Collections.Generic.IList<WorldGeometryObservation>)_sensorB.Observations);
+            var observationsA = new System.Collections.Generic.List<WorldGeometryObservation>(_sensorA.Observations);
+            var observationsB = new System.Collections.Generic.List<WorldGeometryObservation>(_sensorB.Observations);
+            var textA = WorldGeometryObservationSerializer.Serialize(observationsA);
+            var textB = WorldGeometryObservationSerializer.Serialize(observationsB);
             _textA.Text = textA;
             _textB.Text = textB;
             _status.Text = string.Format("Time {0:0.00}s   A ({1:0.0},{2:0.0}) [{3} obs / ~{4} tok]   B ({5:0.0},{6:0.0}) [{7} obs / ~{8} tok]",
@@ -189,7 +189,7 @@ namespace HWorld.Example
 
         public WanderController(int initialDirection)
         {
-            _directionIndex = initialDirection % 4;
+            _directionIndex = ((initialDirection % 4) + 4) % 4;
         }
 
         public void Update(WorldActorControllerContext context)
