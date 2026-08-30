@@ -1,0 +1,9 @@
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+TestResults/
+packages/
+*.nupkg

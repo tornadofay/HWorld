@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net481</TargetFramework>
+    <RootNamespace>HWorld.Console</RootNamespace>
+    <AssemblyName>HWorld.Console</AssemblyName>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
+  </ItemGroup>
+</Project>
