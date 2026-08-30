@@ -6,6 +6,18 @@ namespace HWorld.Example
 {
     internal static class WorldFileService
     {
+        public static string DefaultWorldDirectory
+        {
+            get { return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Worlds"); }
+        }
+
+        public static string PrepareDefaultWorldDirectory()
+        {
+            var directory = DefaultWorldDirectory;
+            Directory.CreateDirectory(directory);
+            return directory;
+        }
+
         public static void Save(World world, string path)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
