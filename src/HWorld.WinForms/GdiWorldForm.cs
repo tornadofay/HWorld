@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using HWorld.Core.Geometry;
 using HWorld.Core.World;
 using HWorld.WinForms.Helpers;
 using HWorld.WinForms.Helpers.Button;
@@ -29,7 +30,7 @@ namespace HWorld.WinForms
             BackColor = Color.FromArgb(11, 14, 18);
             ForeColor = Color.FromArgb(235, 239, 244);
 
-            _player = player ?? (world.Actors.Count > 0 ? world.Actors[0] : world.AddActor(new Core.Geometry.WorldPoint(20, 20), speed: 14));
+            _player = player ?? (world.Actors.Count > 0 ? world.Actors[0] : world.AddActor(new WorldPoint(20, 20), speed: 14));
             if (string.IsNullOrWhiteSpace(_player.Name)) _player.Name = "Player";
 
             var root = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = BackColor, ColumnCount = 1, RowCount = 2, Padding = new Padding(10) };
