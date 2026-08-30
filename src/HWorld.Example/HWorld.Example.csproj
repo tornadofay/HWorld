@@ -13,4 +13,8 @@
     <ProjectReference Include="..\HWorld.WinForms\HWorld.WinForms.csproj" />
     <ProjectReference Include="..\HWorld.Console\HWorld.Console.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="WorldCanvas.cs" />
+    <Compile Remove="WorldFileService.cs" />
+  </ItemGroup>
 </Project>
