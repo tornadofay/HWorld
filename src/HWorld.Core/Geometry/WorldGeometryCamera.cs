@@ -28,7 +28,7 @@ namespace HWorld.Core.Geometry
         /// This camera reuses internal candidate storage and is therefore intended
         /// to be owned by one execution context; it is not thread-safe.
         /// </summary>
-        public int Observe(World world, WorldActor observer, IList<WorldGeometryObservation> observations)
+        public int Observe(HWorld.Core.World.World world, WorldActor observer, IList<WorldGeometryObservation> observations)
         {
             if (world == null) throw new ArgumentNullException(nameof(world));
             if (observer == null) throw new ArgumentNullException(nameof(observer));
