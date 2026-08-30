@@ -8,9 +8,9 @@ HWorld is intentionally **independent from HAgent during early development**. Th
 
 ## Current status
 
-HWorld has reached the first substantial pre-AI prototype. The world can be authored by hand, rendered through reusable WinForms/GDI+ or console views, saved and loaded, queried through a spatial index, played by a human-controlled actor, interacted with, and inspected through a geometry-based sensor.
+HWorld has reached the first substantial pre-AI multi-actor prototype. The world can be authored by hand, rendered through reusable WinForms/GDI+ or console views, saved and loaded, queried through a spatial index, played by a human-controlled actor, and exercised with multiple independently embodied actors and actor-specific geometry sensors.
 
-The current work is the pre-AI multi-actor/perception laboratory foundation. Before connecting HAgent, the Example project will remain the primary test laboratory for observing what the world and sensors actually expose.
+The current work is the deterministic multi-actor/perception foundation. Before connecting HAgent, the Example project remains the primary test laboratory for observing what the world and sensors actually expose.
 
 Implemented today:
 
@@ -24,17 +24,22 @@ Implemented today:
 - Human player movement
 - Basic collision-aware movement
 - Generic object interaction and interactable item metadata
+- Multiple world actors with independent physical state
+- Actor-specific action queues and deterministic actor update ordering
+- Non-LLM behavior/controller boundary for autonomous actors
+- Actor-to-actor collision handling
 - Forward-facing geometry camera with FOV and range
+- Optional actor perception through the same geometry observation contract
+- Independent sensor instances per observing actor
 - Compact geometry-observation serialization
 - Approximate observation token-cost estimation
 - Human-facing Geometry Eye visualization in the GDI runtime
+- Multi-Actor Laboratory showing two independently controlled actors and their separate sensor views
 - Separate `HWorld.Example` test harness, `HWorld.WinForms` renderer/designer library, and `HWorld.Console` renderer
 
 Not yet implemented:
 
-- Multiple independent autonomous actors
-- Actor-to-actor perception and behavior
-- Time/decision scheduling for actors with different response speeds
+- Async decision/time scheduling with different response speeds
 - LLM/HAgent integration
 - Agent memory implementation
 - Agent hands/inventory
@@ -100,7 +105,8 @@ HWorld.Example
     Test harness and experiment laboratory
     Creates sample worlds
     Opens Designer / GDI / Console
-    Will expose camera observations and compact token text
+    Runs the Multi-Actor Laboratory
+    Exposes camera observations and compact token text
 
 HAgent (external)
     Agent execution/cognition infrastructure
@@ -147,7 +153,7 @@ The Geometry Eye experiment should show both:
 2. the **exact compact observation text** that an eventual external agent would receive;
 3. the approximate token cost of that observation.
 
-The Example should make it easy to change FOV, range, observer heading, object placement and sensor settings and immediately inspect how the observation changes.
+The Multi-Actor Laboratory additionally shows how two actors can share one authoritative world while receiving different sensor observations from their own positions and headings.
 
 The sensor must not automatically reveal semantic object names, hidden state, exact world coordinates or off-camera information unless an experiment explicitly enables them.
 
@@ -164,6 +170,7 @@ C# world core
     -> human player
     -> WinForms/GDI+ viewer
     -> multi-actor laboratory
+    -> time/decision scheduling
     -> optional HAgent integration
 ```
 
@@ -260,6 +267,7 @@ The human and AI should interact with the same world objects and obey the same p
 - [Decision Log](docs/architecture/decision-log.md)
 - [Perception](docs/design/perception.md)
 - [Agents and Time](docs/design/agents-and-time.md)
+- [Multi-Actor Simulation](docs/design/multi-actor.md)
 - [Cognitive Layers](docs/design/cognitive-layers.md)
 - [Information Economy](docs/design/information-economy.md)
 - [Generational Inheritance](docs/experiments/generational-inheritance.md)
