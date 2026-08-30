@@ -8,8 +8,8 @@ namespace HWorld.Core.World
 {
     /// <summary>
     /// Coordinates asynchronous actor decisions without blocking the simulation thread.
-    /// Decision providers only receive immutable snapshots. Completed actions are returned
-    /// to the world through its validated action queue from Update on the simulation thread.
+    /// Decision providers receive immutable actor snapshots. Completed actions return to the
+    /// simulation through the validated world action queue.
     /// </summary>
     public sealed class WorldActorDecisionScheduler : IDisposable
     {
@@ -66,12 +66,14 @@ namespace HWorld.Core.World
         public int MaxConcurrentRequests { get; }
         public int ActiveRequestCount { get; private set; }
 
+        /// <summary>
+        /// Captures an observation on the simulation thread before asynchronous decision work starts.
+        /// Returning an empty string keeps the scheduler independent from any specific sensor.
+        /// </summary>
+        public Func<WorldActor, string> ObservationFactory { get; set; }
+
         public event EventHandler<WorldActorDecisionEvent> DecisionLifecycle;
 
-        /// <summary>
-        /// Registers one actor with one independent asynchronous decision provider.
-        /// An actor can have at most one active request at a time.
-        /// </summary>
         public void Register(WorldActor actor, IWorldActorDecisionProvider provider, WorldActorDecisionOptions options = null)
         {
             ThrowIfDisposed();
@@ -97,8 +99,8 @@ namespace HWorld.Core.World
         }
 
         /// <summary>
-        /// Pumps decision completions and starts due decisions. Call from the simulation thread
-        /// once per simulation update after advancing world state.
+        /// Pumps asynchronous decision state. Call this from the simulation thread once per
+        /// world update, after <see cref="World.Update(double)"/>.
         /// </summary>
         public void Update(double simulationTime)
         {
@@ -117,6 +119,13 @@ namespace HWorld.Core.World
             for (int i = 0; i < slots.Count && available > 0; i++)
             {
                 var slot = slots[i];
+                if (slot.ActionCompleted)
+                {
+                    slot.ActionCompleted = false;
+                    if (slot.Active == null && slot.Actor.PendingActionCount == 0)
+                        slot.NextDecisionSimulationTime = simulationTime;
+                }
+
                 if (slot.Active != null || slot.Actor.PendingActionCount > 0) continue;
                 if (simulationTime + 0.000001 < slot.NextDecisionSimulationTime) continue;
 
@@ -135,7 +144,7 @@ namespace HWorld.Core.World
 
         private void StartDecision(Slot slot, double simulationTime)
         {
-            var observation = string.Empty;
+            string observation = ObservationFactory == null ? string.Empty : ObservationFactory(slot.Actor) ?? string.Empty;
             var context = new WorldActorDecisionContext(slot.Actor, simulationTime, observation);
             var cancellation = new CancellationTokenSource();
             var requestId = Guid.NewGuid();
@@ -150,14 +159,14 @@ namespace HWorld.Core.World
             {
                 cancellation.Dispose();
                 slot.NextDecisionSimulationTime = simulationTime + slot.Options.DecisionCadenceSeconds;
-                Raise(new WorldActorDecisionEvent(requestId, slot.Actor.Id, WorldActorDecisionOutcome.Failed, simulationTime, ex.Message));
+                Raise(new WorldActorDecisionEvent(requestId, slot.Actor.Id, WorldActorDecisionOutcome.Failed, simulationTime, 0, ex.Message));
                 return;
             }
 
             var request = new Request(requestId, slot, cancellation, task, simulationTime);
             slot.Active = request;
             ActiveRequestCount++;
-            Raise(new WorldActorDecisionEvent(requestId, slot.Actor.Id, WorldActorDecisionOutcome.Started, simulationTime, string.Empty));
+            Raise(new WorldActorDecisionEvent(requestId, slot.Actor.Id, WorldActorDecisionOutcome.Started, simulationTime, 0, string.Empty));
         }
 
         private void PollRequest(Slot slot, double simulationTime)
@@ -174,7 +183,7 @@ namespace HWorld.Core.World
                     ActiveRequestCount--;
                     slot.NextDecisionSimulationTime = simulationTime + slot.Options.DecisionCadenceSeconds;
                     _retiredRequests.Add(request);
-                    Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.TimedOut, simulationTime, "Decision timeout."));
+                    Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.TimedOut, simulationTime, GetElapsedSeconds(request), "Decision timeout."));
                 }
                 return;
             }
@@ -191,35 +200,35 @@ namespace HWorld.Core.World
             }
             catch (OperationCanceledException)
             {
-                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Cancelled, simulationTime, "Decision cancelled."));
+                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Cancelled, simulationTime, GetElapsedSeconds(request), "Decision cancelled."));
                 return;
             }
             catch (Exception ex)
             {
-                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Failed, simulationTime, ex.Message));
+                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Failed, simulationTime, GetElapsedSeconds(request), ex.Message));
                 return;
             }
 
             if (action == null)
             {
-                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Rejected, simulationTime, "Decision provider returned no action."));
+                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Rejected, simulationTime, GetElapsedSeconds(request), "Decision provider returned no action."));
                 return;
             }
 
             if (slot.Actor.PendingActionCount > 0)
             {
-                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Rejected, simulationTime, "Decision result arrived after the actor became busy."));
+                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Rejected, simulationTime, GetElapsedSeconds(request), "Decision result arrived after the actor became busy."));
                 return;
             }
 
             try
             {
                 EnqueueValidatedAction(slot.Actor.Id, action);
-                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Completed, simulationTime, string.Empty));
+                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Completed, simulationTime, GetElapsedSeconds(request), string.Empty));
             }
             catch (Exception ex)
             {
-                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Rejected, simulationTime, ex.Message));
+                Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, WorldActorDecisionOutcome.Rejected, simulationTime, GetElapsedSeconds(request), ex.Message));
             }
         }
 
@@ -229,9 +238,13 @@ namespace HWorld.Core.World
             if (request.Slot.Options.SchedulingMode == WorldDecisionSchedulingMode.DeterministicCheckpoint)
                 return simulationTime - request.StartedSimulationTime >= request.Slot.Options.DecisionTimeout.TotalSeconds;
 
+            return GetElapsedSeconds(request) >= request.Slot.Options.DecisionTimeout.TotalSeconds;
+        }
+
+        private static double GetElapsedSeconds(Request request)
+        {
             var elapsedTicks = Stopwatch.GetTimestamp() - request.StartedTimestamp;
-            var elapsedSeconds = elapsedTicks / (double)Stopwatch.Frequency;
-            return elapsedSeconds >= request.Slot.Options.DecisionTimeout.TotalSeconds;
+            return elapsedTicks / (double)Stopwatch.Frequency;
         }
 
         private void EnqueueValidatedAction(Guid actorId, WorldActorAction action)
@@ -271,7 +284,7 @@ namespace HWorld.Core.World
             slot.Active = null;
             ActiveRequestCount--;
             _retiredRequests.Add(request);
-            Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, outcome, _world.SimulationTime, message));
+            Raise(new WorldActorDecisionEvent(request.Id, slot.Actor.Id, outcome, _world.SimulationTime, GetElapsedSeconds(request), message));
         }
 
         private void CleanupRetiredRequests()
