@@ -42,7 +42,7 @@ namespace HWorld.WinForms
 
             var header = new Header { Dock = DockStyle.Fill, Title = "HWorld GDI", Subtitle = "GDI+ world runtime", AllowMove = false, AllowMinimize = true, AllowClose = true, AllowHelp = true };
             header.PerformOnClose += delegate { Close(); };
-            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "WASD / arrow keys move the player. Mouse wheel zooms. Middle mouse pans in world view. Geometry Eye shows only the observer sensor result. F2 toggles the Geometry Eye.", "GDI World"); };
+            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "WASD / arrow keys move the player. E interacts with nearby interactable items. Mouse wheel zooms. Middle mouse pans in world view. F2 toggles the Geometry Eye.", "GDI World"); };
             root.Controls.Add(header, 0, 0);
 
             var content = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = BackColor };
@@ -87,6 +87,10 @@ namespace HWorld.WinForms
             sensor.Click += delegate { SetSensorMode(!_sensorMode); };
             panel.Controls.Add(sensor);
 
+            var interact = MakeButton("Interact (E)");
+            interact.Click += delegate { InteractWithNearbyItem(); _canvas.Focus(); };
+            panel.Controls.Add(interact);
+
             AddTop(panel, MakeMetricLabel("Time"), out _timeValue);
             AddTop(panel, MakeMetricLabel("Position"), out _positionValue);
             AddTop(panel, MakeMetricLabel("Sensor"), out _sensorValue);
@@ -102,6 +106,21 @@ namespace HWorld.WinForms
             if (enabled) _cameraView.RefreshObservation();
             else _canvas.CenterOnPlayer();
             (enabled ? (Control)_cameraView : _canvas).Focus();
+        }
+
+        private void InteractWithNearbyItem()
+        {
+            var item = _canvas.World.FindNearestInteractable(_player.Position, 10.0);
+            if (item == null) return;
+
+            var result = WorldInteraction.TryInteract(_canvas.World, _player.Id, item.Id, 10.0);
+            if (result == WorldInteractionResult.Succeeded)
+            {
+                HMessage.ShowInformation(this,
+                    item.Name + "\r\n\r\nAction: " + item.InteractionLabel + "\r\nPosition: " +
+                    item.Position.X.ToString("0.0") + ", " + item.Position.Y.ToString("0.0"),
+                    "Interaction");
+            }
         }
 
         private void OnTick(object sender, EventArgs e)
@@ -125,6 +144,7 @@ namespace HWorld.WinForms
             if (e.KeyCode == Keys.S || e.KeyCode == Keys.Down) _down = true;
             if (e.KeyCode == Keys.A || e.KeyCode == Keys.Left) _left = true;
             if (e.KeyCode == Keys.D || e.KeyCode == Keys.Right) _right = true;
+            if (e.KeyCode == Keys.E) InteractWithNearbyItem();
             if (e.KeyCode == Keys.F2) SetSensorMode(!_sensorMode);
             if (e.KeyCode == Keys.Escape) Close();
         }
