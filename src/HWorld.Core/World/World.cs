@@ -40,6 +40,15 @@ namespace HWorld.Core.World
             return item;
         }
 
+        internal WorldItem RestoreItem(WorldItem item)
+        {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+            if (item.Width <= 0) throw new ArgumentOutOfRangeException(nameof(item));
+            if (item.Height <= 0) throw new ArgumentOutOfRangeException(nameof(item));
+            _items.Add(item);
+            return item;
+        }
+
         public bool RemoveItem(Guid id)
         {
             for (int i = 0; i < _items.Count; i++)
@@ -73,6 +82,17 @@ namespace HWorld.Core.World
             if (actor.Collides && IntersectsSolidItem(actor, position))
                 throw new InvalidOperationException("The actor cannot be spawned inside a solid world item.");
 
+            _actors.Add(actor);
+            return actor;
+        }
+
+        internal WorldActor RestoreActor(WorldActor actor)
+        {
+            if (actor == null) throw new ArgumentNullException(nameof(actor));
+            if (actor.Width <= 0) throw new ArgumentOutOfRangeException(nameof(actor));
+            if (actor.Height <= 0) throw new ArgumentOutOfRangeException(nameof(actor));
+            if (actor.Speed < 0) throw new ArgumentOutOfRangeException(nameof(actor));
+            if (!IsInsideWorld(actor, actor.Position)) throw new ArgumentOutOfRangeException(nameof(actor));
             _actors.Add(actor);
             return actor;
         }
@@ -159,6 +179,12 @@ namespace HWorld.Core.World
                 throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
 
             SimulationTime += deltaSeconds;
+        }
+
+        internal void SetSimulationTime(double value)
+        {
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+            SimulationTime = value;
         }
 
         private bool CanOccupy(WorldActor actor, WorldPoint center)
