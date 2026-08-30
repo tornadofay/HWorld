@@ -57,7 +57,9 @@ namespace HWorld.Core.World
                     Kind = item.Kind,
                     Name = item.Name,
                     Shape = item.Shape,
-                    VisualVariant = item.VisualVariant
+                    VisualVariant = item.VisualVariant,
+                    Interactable = item.Interactable,
+                    InteractionLabel = item.InteractionLabel
                 });
             }
 
@@ -100,7 +102,9 @@ namespace HWorld.Core.World
                         Kind = data.Kind ?? "object",
                         Name = data.Name ?? "Object",
                         Shape = data.Shape,
-                        VisualVariant = data.VisualVariant
+                        VisualVariant = data.VisualVariant,
+                        Interactable = data.Interactable,
+                        InteractionLabel = data.InteractionLabel ?? "Interact"
                     });
                     if (item == null) throw new InvalidOperationException("Failed to restore world item.");
                 }
