@@ -17,6 +17,15 @@ namespace HWorld.Example
         private readonly Label _zoomValue;
         private readonly Timer _timer;
 
+        private TextBox _seedBox;
+        private ComboBox _toolBox;
+        private CheckBox _solidBox;
+        private Label _modeValue;
+        private Label _playerValue;
+        private Label _seedValue;
+        private Label _storyValue;
+        private Label _hintValue;
+
         private WorldScenario _scenario;
         private bool _running;
         private bool _up;
@@ -188,13 +197,13 @@ namespace HWorld.Example
 
             panel.Controls.Add(MakeSectionLabel("STORY"));
             _storyValue = MakeLabel("—", 8.5f, FontStyle.Regular, Color.FromArgb(173, 182, 193));
-            _storyValue.Dock = DockStyle.Fill;
+            _storyValue.Dock = DockStyle.Top;
+            _storyValue.Height = 72;
             _storyValue.AutoEllipsis = false;
             panel.Controls.Add(_storyValue);
 
             _hintValue = MakeLabel("", 8.2f, FontStyle.Regular, Color.FromArgb(119, 132, 145));
-            _hintValue.Dock = DockStyle.Bottom;
-            _hintValue.Height = 72;
+            _hintValue.Dock = DockStyle.Fill;
             panel.Controls.Add(_hintValue);
             return panel;
         }
@@ -316,7 +325,7 @@ namespace HWorld.Example
 
         private void ApplyTool()
         {
-            if (_toolBox == null || _canvas == null) return;
+            if (_toolBox == null || _solidBox == null || _canvas == null) return;
             var kind = _toolBox.SelectedItem as string ?? "object";
             _canvas.BuildKind = kind;
             _canvas.BuildSolid = _solidBox.Checked || kind == "wall";
@@ -362,6 +371,8 @@ namespace HWorld.Example
             _itemsValue.Text = _scenario.World.Items.Count.ToString();
             _playerValue.Text = string.Format("{0:0.0}, {1:0.0}", _scenario.Player.Position.X, _scenario.Player.Position.Y);
             _seedValue.Text = _scenario.Seed.HasValue ? _scenario.Seed.Value.ToString() : "manual";
+            _zoomValue.Text = _canvas.Zoom.ToString("0.00") + "x";
+            _statusValue.Text = _running ? "Running" : "Paused";
         }
     }
 }
