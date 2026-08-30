@@ -86,7 +86,7 @@ namespace HWorld.WinForms.Rendering
                 var right = heading + halfFov * Math.PI / 180.0;
                 var pLeft = new PointF(cx + (float)Math.Cos(left) * rangePx, cy + (float)Math.Sin(left) * rangePx);
                 var pRight = new PointF(cx + (float)Math.Cos(right) * rangePx, cy + (float)Math.Sin(right) * rangePx);
-                wedge.AddLine(cx, cy, pLeft);
+                wedge.AddLine(new PointF(cx, cy), pLeft);
                 wedge.AddArc(cx - rangePx, cy - rangePx, rangePx * 2f, rangePx * 2f, (float)(left * 180.0 / Math.PI), (float)(Camera.FieldOfViewDegrees));
                 wedge.CloseFigure();
                 g.FillPath(FovBrush, wedge);
