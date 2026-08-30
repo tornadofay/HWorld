@@ -4,11 +4,9 @@
 
 A camera is a sensor model, not merely a painting control.
 
-The first camera is geometry-based because it is deterministic, cheap and does not require a vision model.
+The first camera should be geometry-based because it is deterministic, cheap and does not require a vision model.
 
 ## Forward-facing geometry camera
-
-`HWorld.Core.Geometry.WorldGeometryCamera` provides the first implementation.
 
 Inputs:
 
@@ -16,38 +14,29 @@ Inputs:
 - observer rotation
 - field of view
 - maximum range
+- sensor resolution/precision
+- occlusion policy
 
 Processing:
 
 ```text
 world position
  -> relative vector
+ -> rotate into camera coordinates
  -> range test
- -> bearing/FOV test
- -> compact geometry observation
+ -> FOV test
+ -> occlusion test
+ -> project to camera space
+ -> observation record
 ```
 
-The implementation uses the world spatial index for candidate selection and reuses an internal candidate buffer between calls. The caller supplies the observation list, avoiding a mandatory result-list allocation inside the camera.
-
-The current observation intentionally contains geometric facts only:
-
-- entity ID
-- relative X/Y
-- distance
-- bearing
-- width/height
-- rotation
-- optional solid state
-
-It does not expose the item's semantic name or application-specific kind.
-
-This is deliberately not yet an image camera and does not perform occlusion or pixel projection.
+The current implementation provides the deterministic position/range/FOV portion. Occlusion and richer projection remain later work.
 
 ## Camera variants
 
 ### Forward camera
 
-A limited field-of-view cone in front of the agent. **Implemented first as `WorldGeometryCamera`.**
+A limited field-of-view cone in front of the agent.
 
 ### Wide camera
 
@@ -73,7 +62,9 @@ Produces pixels through GDI+ initially, with future Direct2D/DirectX/Godot/Unity
 
 ### Level 0 — geometry
 
-No semantic names. This is the first implemented perception level.
+No semantic names.
+
+The current compact serializer uses only an anonymous entity ID plus relative geometry, distance, bearing, size, rotation and solid state.
 
 ### Level 1 — compact descriptors
 
@@ -87,6 +78,18 @@ Pixels are passed to a vision-capable model.
 
 Image + geometry + touch/proximity/etc.
 
+## Compact observation serialization
+
+`WorldGeometryObservationSerializer` produces a deterministic machine-oriented text form intended to minimize context overhead.
+
+Example structure:
+
+```text
+n=2;i=<id>,x=...,y=...,d=...,b=...,w=...,h=...,r=...,s=0;...
+```
+
+It intentionally does not serialize semantic names or application-defined kinds.
+
 ## Information budget
 
 Each observation should have a measurable information/token estimate.
@@ -95,10 +98,12 @@ The engine should be able to compare:
 
 - objects observed
 - fields included
-- estimated serialized size
+- serialized character count
 - estimated token count
 - model response size
 - calls per simulated minute
+
+`WorldObservationTokenEstimator` provides a cheap provider-neutral estimate from serialized character count. It is a planning/measurement aid, not an exact provider tokenizer or billing calculation.
 
 ## Perception should not leak world truth
 
