@@ -1,29 +1,38 @@
 # HWorld Architecture
 
+## Project boundaries
+
+HWorld is split by responsibility:
+
+```text
+HWorld.Core
+    renderer-independent world/simulation library
+
+HWorld.WinForms
+    reusable Windows Forms integration
+    GDI+ renderer/viewer
+    world designer
+    WinForms file-dialog integration
+
+HWorld.Console
+    console renderer/runtime
+
+HWorld.Example
+    executable test harness
+    exercises the libraries above
+    contains test/sample world fixtures only
+```
+
+`HWorld.Example` must not become the owner of rendering implementations. Its purpose is to prove that the libraries work together.
+
 ## Boundary between HWorld and HAgent
 
 HWorld owns the simulated reality.
 HAgent owns model/provider/tool/agent execution concerns.
 
-```text
-+----------------------+       +----------------------+
-| HWorld                |       | HAgent               |
-|                      |       |                      |
-| World                |       | Agent execution      |
-| Time                 | <---> | Provider/model       |
-| Physics              |       | Tool calling         |
-| Collision            |       | Context construction |
-| Spatial index         |       | Memory integrations  |
-| Bodies/items          |       | Cancellation         |
-| Sensors               |       | Execution results    |
-| Actions               |       |                      |
-| Rendering adapters    |       |                      |
-+----------------------+       +----------------------+
-```
-
 HWorld should consume HAgent through a small adapter interface rather than referencing HAgent internals throughout the simulation.
 
-## World layer
+## Core world layer
 
 The world is authoritative.
 
@@ -38,14 +47,52 @@ It owns:
 - environmental state
 - simulation time
 - event sequencing
+- spatial indexing
+- collision/occupancy rules
+
+The core must not reference GDI+, WinForms, Console rendering, DirectX, Godot, Unity, or a model provider.
+
+## Rendering boundary
+
+A renderer reads simulation state and presents it. It must not decide simulation outcomes.
+
+```text
+             HWorld.Core
+                  |
+        +---------+---------+
+        |                   |
+ HWorld.WinForms     HWorld.Console
+        |                   |
+      GDI+               terminal
+```
+
+The same `World` instance/model can therefore be presented through different front ends.
+
+### WinForms
+
+`HWorld.WinForms` contains reusable GDI+ presentation components, including the world canvas and designer forms. These components consume `HWorld.Core` objects and remain independent of the Example application's sample scenarios.
+
+### Console
+
+`HWorld.Console` contains terminal rendering and interactive console runtime code. Console presentation must not leak into `HWorld.Core`.
+
+## Example test harness
+
+`HWorld.Example` is intentionally thin.
+
+Its main job is to expose test entry points such as:
+
+- Design World
+- Run GDI
+- Run Console
+
+It may contain sample/test world factories, but renderer implementation belongs to the renderer project.
 
 ## Simulation clock
 
 Simulation time is independent of wall-clock/API latency.
 
 A decision request may be outstanding while the world continues to advance.
-
-Actions therefore need timestamps or validity windows.
 
 Example:
 
@@ -62,53 +109,21 @@ The world remains valid throughout.
 
 Everything in the world has an identity, but identity does not imply semantic meaning to an agent.
 
-```text
-WorldEntity
-  Id
-  Transform
-  Geometry
-  PhysicalState
-  InteractionState
-  PerceptionProperties
-  OptionalAgentBody
-  OptionalItemProperties
-```
-
-An object may have an internal developer name such as `Object_17`, but semantic labels such as "tree" or "car" should not automatically be exposed to an agent's observation.
+Semantic labels should not automatically be exposed through perception APIs.
 
 ## Spatial index
 
 Spatial indexing is an optimization and query facility, not a source of truth.
 
-The initial implementation can use a simple grid or uniform partition. Later implementations may use a quadtree or another spatial index.
+The initial implementation uses a uniform grid. Later implementations may add other strategies without changing the world API.
 
-Queries should support:
+## Camera and sensor boundary
 
-- nearby entities
-- entities intersecting an area
-- ray/segment candidates
-- camera/FOV candidates
+A camera/sensor determines what an observer can perceive.
 
-## Physics and collision
+A renderer determines how that information or world state is presented visually.
 
-Physics should remain intentionally simple in early versions. HWorld is an AI/artificial-life laboratory, not a replacement for a full game physics engine.
-
-Start with:
-
-- point/circle/rectangle geometry
-- static obstacles
-- basic movement constraints
-- segment intersection
-- overlap tests
-- deterministic update order
-
-## Renderer boundary
-
-A renderer reads simulation state and draws it. It must not decide simulation outcomes.
-
-A camera/sensor is conceptually separate from a renderer.
-
-A GDI+ visual camera may use the same projection math as a geometry camera, then render that observation for the human observer.
+These concepts must remain separable so a geometric camera can later feed an AI observation while a GDI camera can simultaneously show a human-readable view.
 
 ## Example execution cycle
 
@@ -126,4 +141,4 @@ A GDI+ visual camera may use the same projection math as a geometry camera, then
 11. Render current state through the selected renderer.
 ```
 
-This cycle can be implemented with different real-time speeds or in accelerated/headless mode.
+The cycle must work in real-time, accelerated mode, or headless mode.
