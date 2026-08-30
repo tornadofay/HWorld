@@ -25,14 +25,12 @@ namespace HWorld.Core.World
         public bool Collides { get; set; } = true;
         public string Name { get; set; } = "Actor";
 
-        /// <summary>Optional non-LLM controller invoked by the world when this actor is idle.</summary>
         public IWorldActorController Controller { get; set; }
 
-        /// <summary>Number of queued or currently executing actions for this actor.</summary>
         public int PendingActionCount => _actionQueue.Count + (_activeAction != null ? 1 : 0);
-
-        /// <summary>True while an action is currently being executed.</summary>
         public bool IsActionActive => _activeAction != null;
+
+        public event EventHandler ActionCompleted;
 
         internal bool TryStartNextAction()
         {
@@ -43,7 +41,6 @@ namespace HWorld.Core.World
         }
 
         internal WorldActorAction ActiveAction => _activeAction;
-
         internal double ActiveActionRemainingSeconds => _activeActionRemainingSeconds;
 
         internal void ConsumeActionTime(double seconds)
@@ -54,6 +51,7 @@ namespace HWorld.Core.World
             {
                 _activeAction = null;
                 _activeActionRemainingSeconds = 0;
+                ActionCompleted?.Invoke(this, EventArgs.Empty);
             }
         }
 
