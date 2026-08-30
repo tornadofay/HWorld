@@ -142,6 +142,35 @@ namespace HWorld.Core.World
             return null;
         }
 
+        public WorldItem FindNearestInteractable(WorldPoint point, double reach = 2.5)
+        {
+            if (reach < 0) throw new ArgumentOutOfRangeException(nameof(reach));
+            var minX = point.X - reach;
+            var minY = point.Y - reach;
+            var maxX = point.X + reach;
+            var maxY = point.Y + reach;
+            _spatialIndex.Query(new WorldPoint(minX, minY), new WorldPoint(maxX, maxY), _queryBuffer);
+
+            WorldItem best = null;
+            var bestDistanceSquared = reach * reach;
+            for (int i = 0; i < _queryBuffer.Count; i++)
+            {
+                var item = _queryBuffer[i];
+                if (!item.Interactable) continue;
+                var centerX = item.Position.X + item.Width * 0.5;
+                var centerY = item.Position.Y + item.Height * 0.5;
+                var dx = centerX - point.X;
+                var dy = centerY - point.Y;
+                var distanceSquared = dx * dx + dy * dy;
+                if (distanceSquared <= bestDistanceSquared)
+                {
+                    bestDistanceSquared = distanceSquared;
+                    best = item;
+                }
+            }
+            return best;
+        }
+
         public void Update(double deltaSeconds)
         {
             if (deltaSeconds < 0) throw new ArgumentOutOfRangeException(nameof(deltaSeconds));
