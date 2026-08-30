@@ -123,7 +123,7 @@ namespace HWorld.WinForms
 
         private void ApplyTool()
         {
-            if (_toolBox == null) return;
+            if (_canvas == null || _toolBox == null) return;
             var shape = _toolBox.SelectedItem is WorldShapeKind ? (WorldShapeKind)_toolBox.SelectedItem : WorldShapeKind.Rectangle;
             _canvas.BuildShape = shape;
             _canvas.BuildKind = shape.ToString().ToLowerInvariant();
@@ -229,7 +229,7 @@ namespace HWorld.WinForms
         }
 
         private void UpdateTitle() { Text = "HWorld World Designer" + (_dirty ? " *" : ""); }
-        private void UpdateStatus() { _itemsValue.Text = _canvas.World.Items.Count.ToString(CultureInfo.InvariantCulture); _dirtyValue.Text = _dirty ? "Unsaved" : "Saved"; if (_canvas.SelectedItem != null) _selectionValue.Text = _canvas.SelectedItem.Name ?? _canvas.SelectedItem.Id.ToString(); }
+        private void UpdateStatus() { if (_canvas == null || _itemsValue == null) return; _itemsValue.Text = _canvas.World.Items.Count.ToString(CultureInfo.InvariantCulture); _dirtyValue.Text = _dirty ? "Unsaved" : "Saved"; if (_canvas.SelectedItem != null) _selectionValue.Text = _canvas.SelectedItem.Name ?? _canvas.SelectedItem.Id.ToString(); }
         private static decimal Clamp(decimal value, decimal min, decimal max) { return Math.Max(min, Math.Min(max, value)); }
         private static void AddTop(Control parent, Control control, int height) { control.Dock = DockStyle.Top; control.Height = height; parent.Controls.Add(control); }
         private static Label MakeLabel(string text, float size, FontStyle style, Color color) { return new Label { Text = text, Font = new Font("Segoe UI", size, style), ForeColor = color, BackColor = Color.Transparent, AutoEllipsis = true }; }
