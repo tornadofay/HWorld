@@ -20,8 +20,7 @@ namespace HWorld.Example
         private readonly Label _status;
         private readonly Label _fastState;
         private readonly Label _slowState;
-        private readonly Panel _worldView;
-        private double _wallSeconds;
+        private readonly MultiActorOverview _worldView;
         private bool _running = true;
 
         public DecisionSchedulingLabForm()
@@ -81,7 +80,7 @@ namespace HWorld.Example
             header.PerformOnHelp += delegate
             {
                 HMessage.ShowInformation(this,
-                    "Fast decision: 100 ms provider latency.\r\nSlow decision: 900 ms provider latency.\r\n\r\nThe world keeps advancing at 30 Hz. Decision results are applied only on the simulation thread, and late results are rejected if the actor has become busy.",
+                    "Fast decision: 100 ms provider latency.\r\nSlow decision: 900 ms provider latency.\r\n\r\nThe world keeps advancing at 30 Hz. Decision results are applied only on the simulation thread, and cancelled or timed-out requests cannot inject late actions.",
                     "Decision Scheduling");
             };
             root.Controls.Add(header, 0, 0);
@@ -91,7 +90,7 @@ namespace HWorld.Example
             body.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28f));
             root.Controls.Add(body, 0, 1);
 
-            _worldView = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(10, 13, 17), Margin = new Padding(0, 8, 8, 0) };
+            _worldView = new MultiActorOverview { Dock = DockStyle.Fill, World = _world, ActorA = _fast, ActorB = _slow, Margin = new Padding(0, 8, 8, 0) };
             body.Controls.Add(_worldView, 0, 0);
 
             var side = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 8, BackColor = Color.FromArgb(20, 25, 32), Padding = new Padding(14) };
@@ -121,7 +120,7 @@ namespace HWorld.Example
 
             _status = new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(190, 200, 210), Font = new Font("Segoe UI", 8.5f), TextAlign = ContentAlignment.MiddleLeft };
             side.Controls.Add(_status, 0, 5);
-            side.Controls.Add(new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(150, 160, 172), Font = new Font("Segoe UI", 8.2f), Text = "Real latency is measured with Stopwatch.\r\nSimulation time and action execution remain independent.\r\nThis lab does not use HAgent.", AutoEllipsis = true }, 0, 6);
+            side.Controls.Add(new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(150, 160, 172), Font = new Font("Segoe UI", 8.2f), Text = "Real latency is measured independently of simulation time.\r\nDecision providers never mutate the world directly.\r\nThis lab does not use HAgent." }, 0, 6);
             side.Controls.Add(new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(120, 132, 145), Font = new Font("Segoe UI", 8f), Text = "Phase 4", TextAlign = ContentAlignment.MiddleLeft }, 0, 7);
 
             _timer = new Timer { Interval = 33 };
@@ -134,7 +133,6 @@ namespace HWorld.Example
         {
             if (!_running) return;
             const double dt = 1.0 / 30.0;
-            _wallSeconds += dt;
             _world.Update(dt);
             _scheduler.Update(_world.SimulationTime);
             _fastState.Text = FormatState(_fast, "FAST");
@@ -145,22 +143,15 @@ namespace HWorld.Example
 
         private void OnDecisionLifecycle(object sender, WorldActorDecisionEvent e)
         {
-            if (!IsDisposed)
+            if (IsDisposed || !IsHandleCreated) return;
+            BeginInvoke((Action)delegate
             {
-                BeginInvoke((Action)delegate
-                {
-                    _status.Text = string.Format("World time {0:0.00}s  •  {1}  •  {2}  •  latency {3:0.000}s", _world.SimulationTime, e.Outcome, e.ActorId == _fast.Id ? "FAST" : "SLOW", e.ElapsedSeconds);
-                });
-            }
+                if (IsDisposed) return;
+                _status.Text = string.Format("World {0:0.00}s • {1} • {2} • latency {3:0.000}s", _world.SimulationTime, e.Outcome, e.ActorId == _fast.Id ? "FAST" : "SLOW", e.ElapsedSeconds);
+            });
         }
 
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            base.OnPaint(e);
-            if (_worldView == null || _worldView.ClientSize.Width <= 0 || _worldView.ClientSize.Height <= 0) return;
-        }
-
-        private string FormatState(WorldActor actor, string label)
+        private static string FormatState(WorldActor actor, string label)
         {
             return string.Format("{0}\r\nposition {1:0.0}, {2:0.0}\r\naction {3}", label, actor.Position.X, actor.Position.Y, actor.IsActionActive ? "executing" : "idle");
         }
@@ -191,11 +182,7 @@ namespace HWorld.Example
         {
             await Task.Delay(_delay, cancellationToken).ConfigureAwait(false);
             var right = context.Position.X < 115;
-            return new WorldActorAction(
-                WorldActorActionKind.Move,
-                right ? 1 : -1,
-                0,
-                0.6);
+            return new WorldActorAction(WorldActorActionKind.Move, right ? 1 : -1, 0, 0.6);
         }
     }
 }
