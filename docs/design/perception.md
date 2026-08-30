@@ -20,7 +20,7 @@ Inputs:
 Processing:
 
 ```text
-world position
+world state
  -> relative vector
  -> rotate into camera coordinates
  -> range test
@@ -78,6 +78,33 @@ Pixels are passed to a vision-capable model.
 
 Image + geometry + touch/proximity/etc.
 
+## Observation laboratory
+
+The `HWorld.Example` project must make perception directly inspectable.
+
+For an observer, the laboratory should show side-by-side:
+
+```text
+Human full-world view
+        |
+        +---- Geometry Eye visual view
+        |
+        +---- exact compact observation text
+        |
+        +---- approximate token estimate
+```
+
+The displayed observation text must be the exact output of the core serializer used by the experiment. The UI must not invent a second approximation.
+
+The laboratory should make it possible to change FOV, range, observer heading, object placement, and sensor options and immediately compare:
+
+- what the human can see;
+- what the sensor reports;
+- what text an external agent would receive;
+- how much information/token budget that representation consumes.
+
+This is an experiment and debugging facility, but it also defines the boundary for future HAgent integration.
+
 ## Compact observation serialization
 
 `WorldGeometryObservationSerializer` produces a deterministic machine-oriented text form intended to minimize context overhead.
@@ -94,7 +121,7 @@ It intentionally does not serialize semantic names or application-defined kinds.
 
 Each observation should have a measurable information/token estimate.
 
-The engine should be able to compare:
+The engine and experiment tooling should be able to compare:
 
 - objects observed
 - fields included
@@ -102,6 +129,7 @@ The engine should be able to compare:
 - estimated token count
 - model response size
 - calls per simulated minute
+- information retained versus discarded
 
 `WorldObservationTokenEstimator` provides a cheap provider-neutral estimate from serialized character count. It is a planning/measurement aid, not an exact provider tokenizer or billing calculation.
 
@@ -109,7 +137,7 @@ The engine should be able to compare:
 
 Never automatically include hidden fields such as:
 
-- exact object class
+- exact semantic object class
 - exact world coordinates
 - hidden health
 - hidden intentions
@@ -117,3 +145,28 @@ Never automatically include hidden fields such as:
 - internal object names
 
 unless the selected experiment explicitly permits them.
+
+## Actor perception
+
+Future actor observations must be treated like any other sensor output. An agent should receive what its sensor can perceive, not a privileged list of every actor in the world.
+
+## HWorld/HAgent boundary
+
+HWorld owns:
+
+- sensor geometry
+- world visibility rules
+- observation generation
+- world events
+- authoritative physical state
+
+HAgent or another external cognitive system may own:
+
+- interpretation of observations
+- memory of observations/events
+- retrieval
+- knowledge formation
+- skills
+- model reasoning
+
+A renderer may visualize the observation, but it must never silently expand the information available to the agent.
