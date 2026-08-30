@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Globalization;
+using System.IO;
 using System.Windows.Forms;
 using HWorld.Core.Geometry;
 using HWorld.Core.World;
@@ -23,6 +24,8 @@ namespace HWorld.Example
         private bool _updatingProperties;
         private WorldScenario _scenario;
         private bool _running, _up, _down, _left, _right;
+        private string _worldPath;
+        private bool _dirty;
 
         public MainForm()
         {
@@ -62,7 +65,7 @@ namespace HWorld.Example
             header.PerformOnHelp += delegate
             {
                 HMessage.ShowInformation(this,
-                    "Build: choose a vector shape and click the world. Select an existing object to edit it.\r\nPlay: WASD / arrow keys.\r\nDelete: selected object. Q / E: rotate selected object.",
+                    "Build: choose a vector shape and click the world. Select an existing object to edit it.\r\nPlay: WASD / arrow keys.\r\nDelete: selected object. Q / E: rotate selected object.\r\nSave/Open/New: use the buttons or Ctrl+S / Ctrl+O / Ctrl+N.",
                     "HWorld controls");
             };
             root.Controls.Add(header, 0, 0);
@@ -83,10 +86,10 @@ namespace HWorld.Example
             _timer.Tick += OnTick;
             KeyDown += OnKeyDown;
             KeyUp += OnKeyUp;
-            FormClosing += delegate { _timer.Stop(); };
-            _canvas.WorldEdited += delegate { UpdateStatus(); };
+            FormClosing += OnFormClosing;
+            _canvas.WorldEdited += delegate { MarkDirty(); UpdateStatus(); };
 
-            LoadHandBuiltWorld();
+            LoadHandBuiltWorld(false);
         }
 
         private Control BuildSidebar()
@@ -109,9 +112,17 @@ namespace HWorld.Example
             source.Height = 38;
             panel.Controls.Add(source);
 
-            var hand = MakeButton("New hand-built world");
-            hand.Click += delegate { LoadHandBuiltWorld(); };
-            panel.Controls.Add(hand);
+            var newWorld = MakeButton("New hand-built world");
+            newWorld.Click += delegate { LoadHandBuiltWorld(true); };
+            panel.Controls.Add(newWorld);
+
+            var save = MakeButton("Save world");
+            save.Click += delegate { SaveWorld(); };
+            panel.Controls.Add(save);
+
+            var open = MakeButton("Open world");
+            open.Click += delegate { OpenWorld(); };
+            panel.Controls.Add(open);
 
             var seedRow = new Panel { Dock = DockStyle.Top, Height = 44, Padding = new Padding(0, 5, 0, 5) };
             panel.Controls.Add(seedRow);
@@ -357,6 +368,7 @@ namespace HWorld.Example
 
         private void WorldItemEdited()
         {
+            MarkDirty();
             _canvas.Invalidate();
             UpdateStatus();
         }
@@ -367,6 +379,7 @@ namespace HWorld.Example
                 return;
             _canvas.DeleteSelectedItem();
             ClearPropertyControls();
+            MarkDirty();
             UpdateStatus();
         }
 
@@ -432,28 +445,34 @@ namespace HWorld.Example
             };
         }
 
-        private void LoadHandBuiltWorld()
+        private void LoadHandBuiltWorld(bool confirm)
         {
+            if (confirm && !ConfirmDiscardChanges("Create a new hand-built world? Unsaved changes will be lost."))
+                return;
             _timer.Stop();
             _running = false;
             _scenario = WorldScenarioFactory.CreateHandBuilt();
+            _worldPath = null;
+            _dirty = false;
             ApplyScenario();
             SetMode(CanvasMode.Build);
         }
 
         private void GenerateSeededWorld()
         {
+            if (!ConfirmDiscardChanges("Generate a new world from this seed? Unsaved changes will be lost.")) return;
             int seed;
-            if (!int.TryParse(_seedBox.Text.Trim(), out seed))
+            if (!int.TryParse(_seedBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out seed))
             {
                 HMessage.ShowWarning(this, "Enter a valid integer seed.", "Generate world");
                 _seedBox.Focus();
                 return;
             }
-
             _timer.Stop();
             _running = false;
             _scenario = WorldScenarioFactory.CreateSeeded(seed);
+            _worldPath = null;
+            _dirty = false;
             ApplyScenario();
             SetMode(CanvasMode.Build);
         }
@@ -466,8 +485,81 @@ namespace HWorld.Example
             _canvas.ResetView();
             _storyValue.Text = _scenario.Story;
             ApplyTool();
-            ClearPropertyControls();
             UpdateStatus();
+        }
+
+        private void SaveWorld()
+        {
+            if (_scenario == null) return;
+            var path = _worldPath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                using (var dialog = new SaveFileDialog())
+                {
+                    dialog.Title = "Save HWorld";
+                    dialog.Filter = "HWorld files (*.hworld.json)|*.hworld.json|JSON files (*.json)|*.json|All files (*.*)|*.*";
+                    dialog.DefaultExt = "hworld.json";
+                    dialog.AddExtension = true;
+                    dialog.FileName = "world.hworld.json";
+                    if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                    path = dialog.FileName;
+                }
+            }
+            try
+            {
+                WorldFileService.Save(_scenario.World, path);
+                _worldPath = path;
+                _dirty = false;
+                UpdateStatus();
+                HMessage.ShowSuccess(this, "World saved successfully.\r\n" + path, "Save world");
+            }
+            catch (Exception ex)
+            {
+                HMessage.ShowException(this, "The world could not be saved.", "Save world", ex);
+            }
+        }
+
+        private void OpenWorld()
+        {
+            if (!ConfirmDiscardChanges("Open another world? Unsaved changes will be lost.")) return;
+            using (var dialog = new OpenFileDialog())
+            {
+                dialog.Title = "Open HWorld";
+                dialog.Filter = "HWorld files (*.hworld.json)|*.hworld.json|JSON files (*.json)|*.json|All files (*.*)|*.*";
+                if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                try
+                {
+                    var world = WorldFileService.Load(dialog.FileName);
+                    WorldActor player = world.Actors.Count > 0 ? world.Actors[0] : world.AddActor(new WorldPoint(20, 20), speed: 14);
+                    _scenario = new WorldScenario(world, player, Path.GetFileNameWithoutExtension(dialog.FileName), "Loaded from " + dialog.FileName + ".", null);
+                    _worldPath = dialog.FileName;
+                    _dirty = false;
+                    ApplyScenario();
+                    SetMode(CanvasMode.Build);
+                }
+                catch (Exception ex)
+                {
+                    HMessage.ShowException(this, "The world file could not be opened.", "Open world", ex);
+                }
+            }
+        }
+
+        private bool ConfirmDiscardChanges(string message)
+        {
+            if (!_dirty) return true;
+            return HMessage.ShowQuestion(this, message, "Unsaved changes") == DialogResult.Yes;
+        }
+
+        private void MarkDirty()
+        {
+            _dirty = true;
+            UpdateFormTitle();
+        }
+
+        private void UpdateFormTitle()
+        {
+            var name = string.IsNullOrWhiteSpace(_worldPath) ? (_scenario == null ? "Untitled" : _scenario.Title) : Path.GetFileName(_worldPath);
+            Text = (_dirty ? "* " : string.Empty) + name + " — HWorld";
         }
 
         private void SetMode(CanvasMode mode)
@@ -486,7 +578,7 @@ namespace HWorld.Example
                 _running = false;
                 _timer.Stop();
                 _canvas.Focus();
-                _hintValue.Text = "BUILD  •  click to place  •  select objects to edit  •  right-click removes";
+                _hintValue.Text = "BUILD  •  click to place  •  drag selected objects  •  right-click to remove";
             }
             else
             {
@@ -500,22 +592,17 @@ namespace HWorld.Example
 
         private void ApplyTool()
         {
-            if (_toolBox == null || _solidBox == null || _canvas == null)
-                return;
+            if (_toolBox == null || _solidBox == null || _canvas == null) return;
             var shape = _toolBox.SelectedItem is WorldShapeKind ? (WorldShapeKind)_toolBox.SelectedItem : WorldShapeKind.Rectangle;
             _canvas.BuildShape = shape;
             _canvas.BuildKind = shape.ToString().ToLowerInvariant();
             _canvas.BuildSolid = _solidBox.Checked || shape == WorldShapeKind.Pillar || shape == WorldShapeKind.House;
             switch (shape)
             {
-                case WorldShapeKind.Tree:
-                    _canvas.BuildWidth = 10; _canvas.BuildHeight = 14; break;
-                case WorldShapeKind.House:
-                    _canvas.BuildWidth = 22; _canvas.BuildHeight = 18; break;
-                case WorldShapeKind.Pillar:
-                    _canvas.BuildWidth = 9; _canvas.BuildHeight = 18; break;
-                default:
-                    _canvas.BuildWidth = 10; _canvas.BuildHeight = 10; break;
+                case WorldShapeKind.Tree: _canvas.BuildWidth = 10; _canvas.BuildHeight = 14; break;
+                case WorldShapeKind.House: _canvas.BuildWidth = 22; _canvas.BuildHeight = 18; break;
+                case WorldShapeKind.Pillar: _canvas.BuildWidth = 9; _canvas.BuildHeight = 18; break;
+                default: _canvas.BuildWidth = 10; _canvas.BuildHeight = 10; break;
             }
         }
 
@@ -529,14 +616,21 @@ namespace HWorld.Example
             if (_up) y -= 1;
             if (_down) y += 1;
             if (Math.Abs(x) > 0 || Math.Abs(y) > 0)
-                _scenario.World.MoveActor(_scenario.Player.Id, x, y, dt);
+            {
+                if (_scenario.World.MoveActor(_scenario.Player.Id, x, y, dt))
+                    MarkDirty();
+            }
             _scenario.World.Update(dt);
+            MarkDirty();
             UpdateStatus();
             _canvas.Invalidate();
         }
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
+            if (e.Control && e.KeyCode == Keys.S) { SaveWorld(); e.SuppressKeyPress = true; return; }
+            if (e.Control && e.KeyCode == Keys.O) { OpenWorld(); e.SuppressKeyPress = true; return; }
+            if (e.Control && e.KeyCode == Keys.N) { LoadHandBuiltWorld(true); e.SuppressKeyPress = true; return; }
             if (e.KeyCode == Keys.W || e.KeyCode == Keys.Up) _up = true;
             if (e.KeyCode == Keys.S || e.KeyCode == Keys.Down) _down = true;
             if (e.KeyCode == Keys.A || e.KeyCode == Keys.Left) _left = true;
@@ -552,6 +646,16 @@ namespace HWorld.Example
             if (e.KeyCode == Keys.D || e.KeyCode == Keys.Right) _right = false;
         }
 
+        private void OnFormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_dirty)
+            {
+                var result = HMessage.ShowQuestion(this, "This world has unsaved changes. Close without saving?", "HWorld", HMessageButtons.YesNo);
+                if (result != DialogResult.Yes) { e.Cancel = true; return; }
+            }
+            _timer.Stop();
+        }
+
         private void UpdateStatus()
         {
             if (_scenario == null || _canvas == null) return;
@@ -560,8 +664,9 @@ namespace HWorld.Example
             if (_itemsValue != null) _itemsValue.Text = _scenario.World.Items.Count.ToString();
             if (_playerValue != null) _playerValue.Text = string.Format(CultureInfo.InvariantCulture, "{0:0.0}, {1:0.0}", _scenario.Player.Position.X, _scenario.Player.Position.Y);
             if (_seedValue != null) _seedValue.Text = _scenario.Seed.HasValue ? _scenario.Seed.Value.ToString(CultureInfo.InvariantCulture) : "manual";
-            if (_zoomValue != null) _zoomValue.Text = _canvas.Zoom.ToString("0.00", CultureInfo.InvariantCulture) + "x";
-            if (_statusValue != null) _statusValue.Text = _running ? "Running" : "Paused";
+            if (_zoomValue != null) _zoomValue.Text = _canvas.Zoom.ToString("0.00") + "x";
+            if (_statusValue != null) _statusValue.Text = _running ? "Running" : (_dirty ? "Modified" : "Saved");
+            UpdateFormTitle();
         }
     }
 }
