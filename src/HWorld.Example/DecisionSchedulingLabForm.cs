@@ -16,7 +16,7 @@ namespace HWorld.Example
         private readonly WorldActor _fast;
         private readonly WorldActor _slow;
         private readonly WorldActorDecisionScheduler _scheduler;
-        private readonly Timer _timer;
+        private readonly System.Windows.Forms.Timer _timer;
         private readonly Label _status;
         private readonly Label _fastState;
         private readonly Label _slowState;
@@ -123,7 +123,7 @@ namespace HWorld.Example
             side.Controls.Add(new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(150, 160, 172), Font = new Font("Segoe UI", 8.2f), Text = "Real latency is measured independently of simulation time.\r\nDecision providers never mutate the world directly.\r\nThis lab does not use HAgent." }, 0, 6);
             side.Controls.Add(new Label { Dock = DockStyle.Fill, ForeColor = Color.FromArgb(120, 132, 145), Font = new Font("Segoe UI", 8f), Text = "Phase 4", TextAlign = ContentAlignment.MiddleLeft }, 0, 7);
 
-            _timer = new Timer { Interval = 33 };
+            _timer = new System.Windows.Forms.Timer { Interval = 33 };
             _timer.Tick += OnTick;
             FormClosing += delegate { _timer.Stop(); _scheduler.Dispose(); };
             _timer.Start();
