@@ -169,7 +169,7 @@ namespace HWorld.Example
             try
             {
                 UseWaitCursor = true;
-                var form = await HAgentWorldLabForm.CreateAsync();
+                var form = await HAgentWorldDiagnosticForm.CreateAsync();
                 UseWaitCursor = false;
                 form.Show(this);
             }
