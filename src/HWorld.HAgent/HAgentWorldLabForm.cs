@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
@@ -41,8 +40,10 @@ namespace HWorld.HAgent
         private Label _status;
         private Label _position;
         private Label _decisionState;
+        private RichTextBox _chat;
         private bool _running = true;
         private bool _sensorMode;
+        private bool _closing;
 
         private HAgentWorldLabForm(HAgentClient client, AgentRuntimeInstance runtimeInstance, string agentName)
         {
@@ -54,6 +55,8 @@ namespace HWorld.HAgent
             _actor.Name = agentName;
 
             _decisionProvider = new HAgentDecisionProvider(_client, _runtimeInstance);
+            _decisionProvider.ExecutionCompleted += OnExecutionCompleted;
+
             _scheduler = new WorldActorDecisionScheduler(_world, 1);
             _scheduler.DecisionLifecycle += OnDecisionLifecycle;
             _scheduler.ObservationFactory = BuildObservation;
@@ -73,7 +76,7 @@ namespace HWorld.HAgent
 
             FormBorderStyle = FormBorderStyle.None;
             WindowState = FormWindowState.Maximized;
-            MinimumSize = new Size(1000, 650);
+            MinimumSize = new Size(1100, 700);
             StartPosition = FormStartPosition.CenterScreen;
             KeyPreview = true;
             BackColor = Color.FromArgb(11, 14, 18);
@@ -106,9 +109,9 @@ namespace HWorld.HAgent
             {
                 HMessage.ShowInformation(this,
                     "The actor receives a geometry observation and asks HAgent for its next decision.\r\n\r\n"
-                    + "HWorld owns movement, collision, simulation time and action application.\r\n"
+                    + "HWorld owns observation, movement, collision, simulation time and action application.\r\n"
                     + "The HAgent runtime instance remains alive while this actor lives.\r\n\r\n"
-                    + "The first valid structured decision becomes MOVE, TURN or WAIT inside HWorld.",
+                    + "The cognition panel shows the prompts, model responses, reasoning and structured decisions used by the actor.",
                     "HWorld + HAgent");
             };
             root.Controls.Add(header, 0, 0);
@@ -120,8 +123,8 @@ namespace HWorld.HAgent
                 RowCount = 1,
                 BackColor = BackColor
             };
-            content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
-            content.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260f));
+            content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 67f));
+            content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33f));
             root.Controls.Add(content, 0, 1);
 
             var viewport = new Panel { Dock = DockStyle.Fill, BackColor = BackColor, Margin = new Padding(0, 8, 8, 0) };
@@ -132,13 +135,19 @@ namespace HWorld.HAgent
             viewport.Controls.Add(_canvas);
             viewport.Controls.Add(_cameraView);
             content.Controls.Add(viewport, 0, 0);
-            content.Controls.Add(BuildSidePanel(), 1, 0);
+            content.Controls.Add(BuildRightPanel(), 1, 0);
 
             _timer = new System.Windows.Forms.Timer { Interval = 33 };
             _timer.Tick += OnTick;
             FormClosing += OnFormClosing;
             KeyDown += OnKeyDown;
             KeyUp += OnKeyUp;
+
+            _chat.AppendText("HWorld + HAgent live session\r\n");
+            _chat.AppendText("Agent: " + agentName + "\r\n");
+            _chat.AppendText("Runtime instance: " + _runtimeInstance.InstanceId + "\r\n\r\n");
+            _chat.AppendText("Waiting for first decision...\r\n\r\n");
+
             _timer.Start();
             _canvas.CenterOnPlayer();
             _canvas.Focus();
@@ -146,9 +155,7 @@ namespace HWorld.HAgent
 
         public static async Task<HAgentWorldLabForm> CreateAsync()
         {
-            var applicationName = Process.GetCurrentProcess().ProcessName;
-            if (string.IsNullOrWhiteSpace(applicationName)) applicationName = "HWorld";
-
+            var applicationName = ProcessNameOrDefault();
             var options = new HAgentStorageOptions
             {
                 ApplicationName = applicationName,
@@ -185,26 +192,42 @@ namespace HWorld.HAgent
             return new HAgentWorldLabForm(client, instance, selected.Name);
         }
 
-        private TableLayoutPanel BuildSidePanel()
+        private static string ProcessNameOrDefault()
+        {
+            var name = Process.GetCurrentProcess().ProcessName;
+            return string.IsNullOrWhiteSpace(name) ? "HWorld" : name;
+        }
+
+        private TableLayoutPanel BuildRightPanel()
         {
             var panel = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 8,
+                RowCount = 2,
                 BackColor = Color.FromArgb(20, 25, 32),
                 Padding = new Padding(14)
             };
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 245));
             panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
 
-            panel.Controls.Add(new Label
+            var info = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 7,
+                BackColor = Color.Transparent
+            };
+            info.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            info.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            info.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            info.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            info.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            info.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            info.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            panel.Controls.Add(info, 0, 0);
+
+            info.Controls.Add(new Label
             {
                 Text = "HAGENT ACTOR",
                 Dock = DockStyle.Fill,
@@ -215,29 +238,77 @@ namespace HWorld.HAgent
             _status = MakeInfoLabel("Agent\r\n—");
             _position = MakeInfoLabel("Position\r\n—");
             _decisionState = MakeInfoLabel("Decision\r\nstarting…");
-            panel.Controls.Add(_status, 0, 1);
-            panel.Controls.Add(_position, 0, 2);
-            panel.Controls.Add(_decisionState, 0, 3);
+            info.Controls.Add(_status, 0, 1);
+            info.Controls.Add(_position, 0, 2);
+            info.Controls.Add(_decisionState, 0, 3);
 
             var pause = MakeButton("Pause");
             pause.Click += delegate { _running = !_running; pause.Text = _running ? "Pause" : "Resume"; };
-            panel.Controls.Add(pause, 0, 4);
+            info.Controls.Add(pause, 0, 4);
 
             var sensor = MakeButton("Geometry Eye");
             sensor.Click += delegate { SetSensorMode(!_sensorMode); };
-            panel.Controls.Add(sensor, 0, 5);
+            info.Controls.Add(sensor, 0, 5);
 
-            panel.Controls.Add(new Label
+            info.Controls.Add(new Label
             {
                 Dock = DockStyle.Fill,
                 ForeColor = Color.FromArgb(165, 175, 186),
                 Font = new Font("Segoe UI", 8.5f),
-                Text = "The actor is controlled by HAgent asynchronously.\r\nHWorld remains authoritative over actions and collision."
+                Text = "HWorld owns observation, actions and collision. HAgent owns cognition."
             }, 0, 6);
 
+            var chatPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = Color.FromArgb(15, 19, 24),
+                Padding = new Padding(8)
+            };
+            chatPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            chatPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            chatPanel.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+            panel.Controls.Add(chatPanel, 0, 1);
+
+            chatPanel.Controls.Add(new Label
+            {
+                Text = "LLM CHAT / COGNITION TRACE",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                TextAlign = ContentAlignment.MiddleLeft
+            }, 0, 0);
+
+            _chat = new RichTextBox
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                BorderStyle = BorderStyle.None,
+                BackColor = Color.FromArgb(11, 14, 18),
+                ForeColor = Color.FromArgb(220, 226, 233),
+                Font = new Font("Consolas", 8.5f),
+                DetectUrls = false,
+                HideSelection = false,
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+                WordWrap = true
+            };
+            chatPanel.Controls.Add(_chat, 0, 1);
+
+            var clear = MakeButton("Clear chat");
+            clear.Click += delegate { _chat.Clear(); };
+            chatPanel.Controls.Add(clear, 0, 2);
+
             var shutdown = MakeButton("Stop Agent");
-            shutdown.Click += delegate { Close(); };
-            panel.Controls.Add(shutdown, 0, 7);
+            shutdown.Click += delegate
+            {
+                if (_closing) return;
+                _closing = true;
+                shutdown.Enabled = false;
+                if (IsHandleCreated && !IsDisposed)
+                    BeginInvoke((Action)delegate { Close(); });
+            };
+            info.Controls.Add(shutdown, 0, 5);
 
             return panel;
         }
@@ -265,7 +336,7 @@ namespace HWorld.HAgent
             _camera.Observe(_world, actor, _observations);
             var lines = new List<string>
             {
-                "Visible geometry entities:",
+                "Visible geometry entities:"
             };
             for (int i = 0; i < _observations.Count; i++)
             {
@@ -285,7 +356,7 @@ namespace HWorld.HAgent
 
         private void OnTick(object sender, EventArgs e)
         {
-            if (!_running) return;
+            if (!_running || _closing) return;
             const double dt = 1.0 / 30.0;
             _world.Update(dt);
             _scheduler.Update(_world.SimulationTime);
@@ -303,20 +374,103 @@ namespace HWorld.HAgent
 
         private void OnDecisionLifecycle(object sender, WorldActorDecisionEvent e)
         {
-            if (IsDisposed || !IsHandleCreated) return;
+            if (_closing || IsDisposed || !IsHandleCreated) return;
             try
             {
                 BeginInvoke((Action)delegate
                 {
-                    if (IsDisposed) return;
+                    if (_closing || IsDisposed) return;
                     _decisionState.Text = string.Format(CultureInfo.InvariantCulture,
                         "Decision\r\n{0}\r\nlatency {1:0.000}s",
                         e.Outcome, e.ElapsedSeconds);
+                    if (e.Outcome == WorldActorDecisionOutcome.Failed || e.Outcome == WorldActorDecisionOutcome.Rejected)
+                        AppendChat("WORLD: " + e.Outcome + ": " + e.Message + "\r\n\r\n");
                 });
             }
             catch (InvalidOperationException)
             {
             }
+        }
+
+        private void OnExecutionCompleted(AgentExecution execution)
+        {
+            if (_closing || IsDisposed || execution == null) return;
+            AppendExecutionToChat(execution);
+        }
+
+        private void AppendExecutionToChat(AgentExecution execution)
+        {
+            var builder = new System.Text.StringBuilder();
+            builder.AppendLine("============================================================");
+            builder.AppendLine("EXECUTION " + execution.Id);
+            builder.AppendLine("CORRELATION " + execution.CorrelationId);
+            builder.AppendLine("RUNTIME " + execution.RuntimeInstanceId + " / rev " + execution.RuntimeInstanceRevision);
+            builder.AppendLine("STATE " + execution.State + "  FAILURE " + execution.FailureKind);
+            builder.AppendLine();
+
+            if (execution.Messages != null)
+            {
+                for (int i = 0; i < execution.Messages.Count; i++)
+                {
+                    var message = execution.Messages[i];
+                    builder.AppendLine((message.Role ?? "message").ToUpperInvariant() + ":");
+                    builder.AppendLine(message.Content ?? string.Empty);
+                    builder.AppendLine();
+                }
+            }
+
+            var response = execution.Response;
+            if (response != null)
+            {
+                builder.AppendLine("ASSISTANT:");
+                builder.AppendLine(response.Text ?? string.Empty);
+                builder.AppendLine();
+
+                if (!string.IsNullOrWhiteSpace(response.Reasoning))
+                {
+                    builder.AppendLine("REASONING:");
+                    builder.AppendLine(response.Reasoning);
+                    builder.AppendLine();
+                }
+
+                if (!string.IsNullOrWhiteSpace(response.StructuredOutputJson))
+                {
+                    builder.AppendLine("STRUCTURED OUTPUT:");
+                    builder.AppendLine(response.StructuredOutputJson);
+                    builder.AppendLine();
+                }
+
+                builder.AppendLine("PROVIDER: " + (response.ProviderId ?? string.Empty));
+                builder.AppendLine("MODEL: " + (response.Model ?? string.Empty));
+            }
+            else if (execution.Error != null)
+            {
+                builder.AppendLine("ERROR:");
+                builder.AppendLine(execution.Error.ToString());
+            }
+
+            builder.AppendLine();
+            AppendChat(builder.ToString());
+        }
+
+        private void AppendChat(string text)
+        {
+            if (_chat == null || _chat.IsDisposed) return;
+            if (_chat.InvokeRequired)
+            {
+                try
+                {
+                    _chat.BeginInvoke((Action)delegate { AppendChat(text); });
+                }
+                catch (InvalidOperationException)
+                {
+                }
+                return;
+            }
+
+            _chat.AppendText(text);
+            _chat.SelectionStart = _chat.TextLength;
+            _chat.ScrollToCaret();
         }
 
         private void SetSensorMode(bool enabled)
@@ -331,6 +485,7 @@ namespace HWorld.HAgent
 
         private void OnFormClosing(object sender, FormClosingEventArgs e)
         {
+            _closing = true;
             _timer.Stop();
             _scheduler.Dispose();
             _decisionProvider.Dispose();
