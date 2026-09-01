@@ -1,3 +1,4 @@
+using HAgent.WinForms;
 using System.Windows.Forms;
 
 namespace HWorld.HAgent
@@ -9,7 +10,7 @@ namespace HWorld.HAgent
     {
         public static void Show(IWin32Window owner = null)
         {
-            HAgent.WinForms.AISettings.ShowMainAISettingsForm(owner);
+            AISettings.ShowMainAISettingsForm(owner);
         }
     }
 }
