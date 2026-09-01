@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
+    <ProjectReference Include="..\HWorld.WinForms\HWorld.WinForms.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="HAgent.Core">
