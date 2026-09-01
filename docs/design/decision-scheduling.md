@@ -4,7 +4,7 @@
 
 Phase 4 separates actor decision latency from continuous HWorld simulation time.
 
-The world must continue advancing while an external decision provider is working. Decision providers never mutate the world directly. They receive an immutable actor snapshot and return an action asynchronously.
+The world must continue advancing while an external decision provider is working. Decision providers never mutate the world directly. They receive an immutable actor snapshot and return a decision asynchronously.
 
 ## Scheduler boundary
 
@@ -43,7 +43,7 @@ Task<WorldActorAction> DecideAsync(
 
 `WorldActorDecisionContext` is an immutable snapshot containing actor identity, physical state, simulation time, and an optional observation captured by the scheduler's `ObservationFactory` on the simulation thread.
 
-This keeps asynchronous provider code away from mutable world state and avoids accidental renderer or UI dependencies.
+The provider contract is generic. HWorld may implement it with a deterministic controller, an LLM/cognition library, a remote service, or another decision system.
 
 ## Per-actor scheduling
 
@@ -76,7 +76,7 @@ A request that times out or is cancelled is retired. If its provider ignores can
 
 ## Action execution
 
-The scheduler does not execute actions itself. It calls the existing world enqueue API after validating the action shape:
+The scheduler does not execute external cognition itself. It validates the returned decision using the HWorld action model and calls the existing world enqueue API:
 
 ```text
 MOVE(direction, duration)
@@ -115,7 +115,7 @@ In both modes, results are applied only by the simulation thread when `WorldActo
 
 ## Action completion
 
-`WorldActor.ActionCompleted` is raised when a current action finishes. The scheduler uses that signal to make an idle actor eligible for another decision at the next scheduler checkpoint instead of requiring a separate cognition tick for every action completion.
+`WorldActor.ActionCompleted` is raised when a current action finishes. The scheduler uses that signal to make an idle registered actor eligible for another decision at the next scheduler checkpoint instead of requiring a separate cognition tick for every action completion.
 
 ## Cancellation
 
@@ -125,9 +125,9 @@ Cancellation is advisory at the provider boundary; the world remains safe even w
 
 ## Observation boundary
 
-The scheduler does not invent an observation format. `ObservationFactory` receives the actor on the simulation thread and should call the actor's actual sensor/serializer pipeline. The resulting text is then frozen into `WorldActorDecisionContext`.
+The scheduler does not invent an observation format. `ObservationFactory` receives the actor on the simulation thread and should call the actor's actual sensor/serializer pipeline. The resulting data is then frozen into the immutable decision context before asynchronous work starts.
 
-This means future HAgent integration can reuse the exact same observation text without moving perception into the decision scheduler.
+This allows any external cognition implementation to consume the same authorized observation without moving perception into the decision scheduler.
 
 ## Example laboratory
 
@@ -140,10 +140,10 @@ This means future HAgent integration can reuse the exact same observation text w
 - the world continues at 30 Hz;
 - scheduler lifecycle and measured latency are visible.
 
-The laboratory intentionally uses no HAgent or model provider.
+The laboratory intentionally uses no external LLM or cognition library.
 
-## Relationship to HAgent
+## Relationship to external cognition
 
-Phase 4 introduces the generic asynchronous scheduling boundary only. It does not introduce an HAgent dependency.
+Phase 4 introduces the generic asynchronous scheduling boundary only. It does not require a particular cognition library.
 
-The future Phase 5 adapter can implement `IWorldActorDecisionProvider` and supply HWorld observations to HAgent without changing the world simulation or scheduler contracts.
+A future external cognition adapter can implement `IWorldActorDecisionProvider` and use the actor's authorized observations without changing the world simulation or scheduler contracts.
