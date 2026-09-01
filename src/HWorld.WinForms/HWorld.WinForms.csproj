@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>net481</TargetFramework>
+    <TargetFramework>net9.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>HWorld.WinForms</RootNamespace>
     <AssemblyName>HWorld.WinForms</AssemblyName>
