@@ -88,7 +88,7 @@ namespace HWorld.Example
             var description = new Label { Text = "One core world  →  reusable designer  →  GDI runtime  →  console runtime  →  multi-actor lab  →  decision scheduling  →  external cognition  →  live HAgent actor", Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopCenter, Font = new Font("Segoe UI", 10f), ForeColor = Color.FromArgb(143, 154, 167) };
             center.Controls.Add(description, 0, 3);
 
-            var status = new Label { Text = "HWorld.Core + HWorld.WinForms + HWorld.Console + HWorld.Example + optional HWorld.HWorld", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 9f), ForeColor = Color.FromArgb(103, 116, 130) };
+            var status = new Label { Text = "HWorld.Core + HWorld.WinForms + HWorld.Console + HWorld.Example + optional HWorld.HAgent", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 9f), ForeColor = Color.FromArgb(103, 116, 130) };
             root.Controls.Add(status, 0, 2);
         }
 
@@ -169,7 +169,7 @@ namespace HWorld.Example
             try
             {
                 UseWaitCursor = true;
-                var form = await HAgentWorldLiveDiagnosticForm.CreateAsync();
+                var form = await HAgentWorldContinuousLabForm.CreateAsync();
                 UseWaitCursor = false;
                 form.Show(this);
             }
