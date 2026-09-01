@@ -39,7 +39,6 @@ namespace HWorld.Example
                 AllowHelp = true
             };
             header.PerformOnClose += delegate { Close(); };
-            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "Design World opens the reusable WinForms designer.\r\nRun GDI opens the reusable GDI+ runtime.\r\nRun Console opens the reusable console runtime.\r\nMulti-Actor Lab demonstrates independent actors, collision and actor-specific perception.\r\nDecision Lab demonstrates asynchronous decision scheduling without an LLM.\r\nHAgent Config opens the optional external cognition configuration UI.\r\nRun HAgent starts one live HWorld actor controlled by one persistent HAgent runtime instance.", "HWorld.Example"); };
             root.Controls.Add(header, 0, 0);
 
             var center = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = Color.Transparent };
@@ -60,116 +59,48 @@ namespace HWorld.Example
             var designer = MakeLauncherButton("Design World");
             designer.Click += delegate { OpenDesigner(); };
             buttons.Controls.Add(designer, 0, 0);
-
             var gdi = MakeLauncherButton("Run GDI");
             gdi.Click += delegate { OpenGdi(); };
             buttons.Controls.Add(gdi, 1, 0);
-
             var console = MakeLauncherButton("Run Console");
             console.Click += delegate { OpenConsole(); };
             buttons.Controls.Add(console, 2, 0);
-
             var multiActor = MakeLauncherButton("Multi-Actor Lab");
             multiActor.Click += delegate { OpenMultiActorLab(); };
             buttons.Controls.Add(multiActor, 3, 0);
-
             var decision = MakeLauncherButton("Decision Lab");
             decision.Click += delegate { OpenDecisionLab(); };
             buttons.Controls.Add(decision, 4, 0);
-
             var hAgent = MakeLauncherButton("HAgent Config");
             hAgent.Click += delegate { OpenHAgentConfiguration(); };
             buttons.Controls.Add(hAgent, 5, 0);
-
             var hAgentRun = MakeLauncherButton("Run HAgent");
             hAgentRun.Click += async delegate { await OpenHAgentWorldAsync(); };
             buttons.Controls.Add(hAgentRun, 6, 0);
 
             var description = new Label { Text = "One core world  →  reusable designer  →  GDI runtime  →  console runtime  →  multi-actor lab  →  decision scheduling  →  external cognition  →  live HAgent actor", Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopCenter, Font = new Font("Segoe UI", 10f), ForeColor = Color.FromArgb(143, 154, 167) };
             center.Controls.Add(description, 0, 3);
-
             var status = new Label { Text = "HWorld.Core + HWorld.WinForms + HWorld.Console + HWorld.Example + optional HWorld.HAgent", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 9f), ForeColor = Color.FromArgb(103, 116, 130) };
             root.Controls.Add(status, 0, 2);
         }
 
         private static HButton MakeLauncherButton(string text)
         {
-            return new HButton {
-                Text = text,
-                Width = 270,
-                Height = 36,
-                Dock = DockStyle.Fill,
-                Margin = new Padding(8),
-                Font = new Font("Segoe UI", 10.5f, FontStyle.Bold),
-                ButtonLeaveBackGroundColor1 = Color.FromArgb(46, 56, 68),
-                ButtonLeaveBackGroundColor2 = Color.FromArgb(28, 35, 44),
-                ButtonEnterBackGroundColor1 = Color.FromArgb(75, 91, 109),
-                ButtonEnterBackGroundColor2 = Color.FromArgb(47, 57, 69),
-                ButtonDownBackGroundColor1 = Color.FromArgb(31, 38, 47),
-                ButtonDownBackGroundColor2 = Color.FromArgb(22, 28, 35),
-                ButtonLeaveForeColor = Color.White,
-                ButtonEnterForeColor = Color.White,
-                ButtonDownForeColor = Color.White
-            };
+            return new HButton { Text = text, Width = 270, Height = 36, Dock = DockStyle.Fill, Margin = new Padding(8), Font = new Font("Segoe UI", 10.5f, FontStyle.Bold), ButtonLeaveBackGroundColor1 = Color.FromArgb(46, 56, 68), ButtonLeaveBackGroundColor2 = Color.FromArgb(28, 35, 44), ButtonEnterBackGroundColor1 = Color.FromArgb(75, 91, 109), ButtonEnterBackGroundColor2 = Color.FromArgb(47, 57, 69), ButtonDownBackGroundColor1 = Color.FromArgb(31, 38, 47), ButtonDownBackGroundColor2 = Color.FromArgb(22, 28, 35), ButtonLeaveForeColor = Color.White, ButtonEnterForeColor = Color.White, ButtonDownForeColor = Color.White };
         }
-
-        private static World CreateTestWorld()
-        {
-            var scenario = WorldScenarioFactory.CreateHandBuilt();
-            return scenario.World;
-        }
-
-        private void OpenDesigner()
-        {
-            try { new WorldDesignerForm(CreateTestWorld()).ShowDialog(this); }
-            catch (Exception ex) { HMessage.ShowException(this, "The world designer could not be opened.", "HWorld.Example", ex); }
-        }
-
-        private void OpenGdi()
-        {
-            try
-            {
-                var world = CreateTestWorld();
-                new GdiWorldForm(world, world.Actors[0]).Show(this);
-            }
-            catch (Exception ex) { HMessage.ShowException(this, "The GDI runtime could not be opened.", "HWorld.Example", ex); }
-        }
-
-        private void OpenConsole()
-        {
-            try
-            {
-                var world = CreateTestWorld();
-                var player = world.Actors[0];
-                Task.Run(delegate { ConsoleWorldRunner.Run(world, player); });
-            }
-            catch (Exception ex) { HMessage.ShowException(this, "The console runtime could not be opened.", "HWorld.Example", ex); }
-        }
-
-        private void OpenMultiActorLab()
-        {
-            try { new MultiActorLabForm().Show(this); }
-            catch (Exception ex) { HMessage.ShowException(this, "The multi-actor laboratory could not be opened.", "HWorld.Example", ex); }
-        }
-
-        private void OpenDecisionLab()
-        {
-            try { new DecisionSchedulingLabForm().Show(this); }
-            catch (Exception ex) { HMessage.ShowException(this, "The decision scheduling laboratory could not be opened.", "HWorld.Example", ex); }
-        }
-
-        private void OpenHAgentConfiguration()
-        {
-            try { HAgentConfiguration.Show(this); }
-            catch (Exception ex) { HMessage.ShowException(this, "The HAgent configuration could not be opened.", "HWorld.Example", ex); }
-        }
-
+        private static World CreateTestWorld() { return WorldScenarioFactory.CreateHandBuilt().World; }
+        private void OpenDesigner() { try { new WorldDesignerForm(CreateTestWorld()).ShowDialog(this); } catch (Exception ex) { HMessage.ShowException(this, "The world designer could not be opened.", "HWorld.Example", ex); } }
+        private void OpenGdi() { try { var world = CreateTestWorld(); new GdiWorldForm(world, world.Actors[0]).Show(this); } catch (Exception ex) { HMessage.ShowException(this, "The GDI runtime could not be opened.", "HWorld.Example", ex); } }
+        private void OpenConsole() { try { var world = CreateTestWorld(); Task.Run(delegate { ConsoleWorldRunner.Run(world, world.Actors[0]); }); } catch (Exception ex) { HMessage.ShowException(this, "The console runtime could not be opened.", "HWorld.Example", ex); } }
+        private void OpenMultiActorLab() { try { new MultiActorLabForm().Show(this); } catch (Exception ex) { HMessage.ShowException(this, "The multi-actor laboratory could not be opened.", "HWorld.Example", ex); } }
+        private void OpenDecisionLab() { try { new DecisionSchedulingLabForm().Show(this); } catch (Exception ex) { HMessage.ShowException(this, "The decision laboratory could not be opened.", "HWorld.Example", ex); } }
+        private void OpenHAgentConfiguration() { try { HAgentConfiguration.Show(this); } catch (Exception ex) { HMessage.ShowException(this, "The HAgent configuration could not be opened.", "HWorld.Example", ex); } }
         private async Task OpenHAgentWorldAsync()
         {
             try
             {
                 UseWaitCursor = true;
-                var form = await HAgentWorldContinuousLabForm.CreateAsync();
+                var form = await HAgentWorldContinuousAgentLabForm.CreateAsync();
                 UseWaitCursor = false;
                 form.Show(this);
             }
