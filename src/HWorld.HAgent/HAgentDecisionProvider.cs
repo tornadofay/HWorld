@@ -10,10 +10,6 @@ using HWorld.Core.World;
 
 namespace HWorld.HAgent
 {
-    /// <summary>
-    /// Adapts a long-lived HAgent runtime instance to HWorld's generic decision-provider contract.
-    /// HWorld remains authoritative over action meaning and world-side validation.
-    /// </summary>
     public sealed class HAgentDecisionProvider : IWorldActorDecisionProvider, IDisposable
     {
         private const string ActionSchema =
@@ -37,19 +33,12 @@ namespace HWorld.HAgent
 
         public event Action<AgentExecution> ExecutionCompleted;
 
-        public AgentRuntimeInstance RuntimeInstance
-        {
-            get { return _runtimeInstance; }
-        }
+        public AgentRuntimeInstance RuntimeInstance { get { return _runtimeInstance; } }
 
-        public async Task<WorldActorAction> DecideAsync(
-            WorldActorDecisionContext context,
-            CancellationToken cancellationToken)
+        public async Task<WorldActorAction> DecideAsync(WorldActorDecisionContext context, CancellationToken cancellationToken)
         {
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(HAgentDecisionProvider));
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
+            if (_disposed) throw new ObjectDisposedException(nameof(HAgentDecisionProvider));
+            if (context == null) throw new ArgumentNullException(nameof(context));
 
             var request = new AgentExecutionRequest
             {
@@ -72,11 +61,7 @@ namespace HWorld.HAgent
                 Options = new AgentExecutionOptions()
             };
 
-            var execution = await _client.ExecuteAsync(
-                _runtimeInstance,
-                request,
-                cancellationToken).ConfigureAwait(false);
-
+            var execution = await _client.ExecuteAsync(_runtimeInstance, request, cancellationToken).ConfigureAwait(false);
             ExecutionCompleted?.Invoke(execution);
 
             if (execution == null || execution.Response == null)
@@ -85,16 +70,11 @@ namespace HWorld.HAgent
             return ParseAction(execution.Response.StructuredOutputJson);
         }
 
-        public void Shutdown()
-        {
-            _runtimeInstance.Shutdown();
-        }
+        public void Shutdown() { _runtimeInstance.Shutdown(); }
 
         public void Dispose()
         {
-            if (_disposed)
-                return;
-
+            if (_disposed) return;
             _disposed = true;
             _runtimeInstance.Shutdown();
         }
@@ -104,11 +84,12 @@ namespace HWorld.HAgent
             return string.Join(Environment.NewLine, new[]
             {
                 "Choose the next action for the actor from its current observation.",
-                "For this experiment, choose MOVE whenever a safe non-zero movement is possible. Use WAIT only when movement is not appropriate.",
+                "Choose freely among four cardinal movement directions: UP (0,-1), DOWN (0,1), LEFT (-1,0), or RIGHT (1,0).",
+                "Use MOVE for normal exploration. You may use TURN or WAIT when appropriate.",
                 "Return exactly one JSON object matching the structured-output schema. All five properties are required.",
-                "For MOVE, provide directionX/directionY/durationSeconds and set angleDegrees to 0.",
+                "For MOVE, provide directionX/directionY as one of the four cardinal directions, durationSeconds > 0, and angleDegrees = 0.",
                 "For TURN, provide angleDegrees and set directionX/directionY to 0 and durationSeconds to 0.000001.",
-                "For WAIT, provide durationSeconds and set directionX/directionY/angleDegrees to 0.",
+                "For WAIT, provide durationSeconds > 0 and set directionX/directionY/angleDegrees to 0.",
                 "",
                 "Actor:",
                 "  id: " + context.ActorId.ToString("N"),
@@ -126,8 +107,7 @@ namespace HWorld.HAgent
 
         private static WorldActorAction ParseAction(string json)
         {
-            if (string.IsNullOrWhiteSpace(json))
-                throw new InvalidOperationException("HAgent returned empty structured output.");
+            if (string.IsNullOrWhiteSpace(json)) throw new InvalidOperationException("HAgent returned empty structured output.");
 
             using (var document = JsonDocument.Parse(json))
             {
@@ -146,18 +126,33 @@ namespace HWorld.HAgent
                         var directionX = GetRequiredNumber(root, "directionX");
                         var directionY = GetRequiredNumber(root, "directionY");
                         var duration = GetRequiredPositiveNumber(root, "durationSeconds");
+                        var angle = GetRequiredNumber(root, "angleDegrees");
+                        if (!IsCardinal(directionX, directionY))
+                            throw new InvalidOperationException("HAgent MOVE must use one of the four cardinal directions.");
+                        if (Math.Abs(angle) > 0.000001)
+                            throw new InvalidOperationException("HAgent MOVE must set angleDegrees to zero.");
                         return new WorldActorAction(WorldActorActionKind.Move, directionX, directionY, duration);
                     }
 
                     case "turn":
                     {
+                        var directionX = GetRequiredNumber(root, "directionX");
+                        var directionY = GetRequiredNumber(root, "directionY");
+                        var duration = GetRequiredPositiveNumber(root, "durationSeconds");
                         var angle = GetRequiredNumber(root, "angleDegrees");
+                        if (Math.Abs(directionX) > 0.000001 || Math.Abs(directionY) > 0.000001)
+                            throw new InvalidOperationException("HAgent TURN must set directionX and directionY to zero.");
                         return new WorldActorAction(WorldActorActionKind.Turn, angle, 0d, 0d);
                     }
 
                     case "wait":
                     {
+                        var directionX = GetRequiredNumber(root, "directionX");
+                        var directionY = GetRequiredNumber(root, "directionY");
                         var duration = GetRequiredPositiveNumber(root, "durationSeconds");
+                        var angle = GetRequiredNumber(root, "angleDegrees");
+                        if (Math.Abs(directionX) > 0.000001 || Math.Abs(directionY) > 0.000001 || Math.Abs(angle) > 0.000001)
+                            throw new InvalidOperationException("HAgent WAIT must set directionX, directionY, and angleDegrees to zero.");
                         return new WorldActorAction(WorldActorActionKind.Wait, 0d, 0d, duration);
                     }
 
@@ -167,10 +162,15 @@ namespace HWorld.HAgent
             }
         }
 
-        private static string Format(double value)
+        private static bool IsCardinal(double x, double y)
         {
-            return value.ToString("R", CultureInfo.InvariantCulture);
+            return (Math.Abs(x - 1d) < 0.000001 && Math.Abs(y) < 0.000001)
+                || (Math.Abs(x + 1d) < 0.000001 && Math.Abs(y) < 0.000001)
+                || (Math.Abs(x) < 0.000001 && Math.Abs(y - 1d) < 0.000001)
+                || (Math.Abs(x) < 0.000001 && Math.Abs(y + 1d) < 0.000001);
         }
+
+        private static string Format(double value) { return value.ToString("R", CultureInfo.InvariantCulture); }
 
         private static bool TryGetString(JsonElement root, string propertyName, out string value)
         {
@@ -180,7 +180,6 @@ namespace HWorld.HAgent
                 value = string.Empty;
                 return false;
             }
-
             value = element.GetString() ?? string.Empty;
             return !string.IsNullOrWhiteSpace(value);
         }
@@ -190,19 +189,16 @@ namespace HWorld.HAgent
             JsonElement element;
             if (!root.TryGetProperty(propertyName, out element) || element.ValueKind != JsonValueKind.Number)
                 throw new InvalidOperationException("HAgent structured output is missing numeric '" + propertyName + "'.");
-
             double value;
             if (!element.TryGetDouble(out value) || double.IsNaN(value) || double.IsInfinity(value))
                 throw new InvalidOperationException("HAgent returned an invalid numeric value for '" + propertyName + "'.");
-
             return value;
         }
 
         private static double GetRequiredPositiveNumber(JsonElement root, string propertyName)
         {
             var value = GetRequiredNumber(root, propertyName);
-            if (value <= 0d)
-                throw new InvalidOperationException("HAgent returned a non-positive value for '" + propertyName + "'.");
+            if (value <= 0d) throw new InvalidOperationException("HAgent returned a non-positive value for '" + propertyName + "'.");
             return value;
         }
     }
