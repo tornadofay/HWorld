@@ -16,6 +16,7 @@ using HAgent.Storage.File;
 using HWorld.Core.Geometry;
 using HWorld.Core.World;
 using HWorld.WinForms;
+using HWorld.WinForms.Rendering;
 
 namespace HWorld.HAgent
 {
