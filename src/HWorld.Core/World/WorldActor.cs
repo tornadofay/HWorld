@@ -34,7 +34,10 @@ namespace HWorld.Core.World
 
         internal bool TryStartNextAction()
         {
-            if (_activeAction != null || _actionQueue.Count == 0) return false;
+            // World.Update() calls this on every simulation tick. Once an action is
+            // active, it must still be processed on subsequent ticks until it completes.
+            if (_activeAction != null) return true;
+            if (_actionQueue.Count == 0) return false;
             _activeAction = _actionQueue.Dequeue();
             _activeActionRemainingSeconds = _activeAction.DurationSeconds;
             return true;
