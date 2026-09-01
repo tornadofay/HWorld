@@ -197,7 +197,7 @@ namespace HWorld.HAgent
             panel.RowStyles[3] = new RowStyle(SizeType.Absolute, 56);
             panel.RowStyles[4] = new RowStyle(SizeType.Absolute, 36);
             panel.RowStyles[5] = new RowStyle(SizeType.Absolute, 36);
-            panel.RowStyles[6] = new RowStyle(SizeType.Percent, 100));
+            panel.RowStyles[6] = new RowStyle(SizeType.Percent, 100);
             panel.RowStyles[7] = new RowStyle(SizeType.Absolute, 36);
 
             panel.Controls.Add(new Label { Text = "HAGENT ACTOR", Dock = DockStyle.Fill, ForeColor = Color.White, Font = new Font("Segoe UI", 11f, FontStyle.Bold) }, 0, 0);
