@@ -25,12 +25,13 @@ HWorld.Example
 
 `HWorld.Example` must not become the owner of rendering implementations. Its purpose is to prove that the libraries work together.
 
-## Boundary between HWorld and HAgent
+## Boundary between HWorld and external cognition
 
-HWorld owns the simulated reality.
-HAgent owns model/provider/tool/agent execution concerns.
+HWorld owns the simulated reality. External cognition owns reasoning/execution infrastructure.
 
-HWorld should consume HAgent through a small adapter interface rather than referencing HAgent internals throughout the simulation.
+HWorld consumes external cognition through a small generic decision-provider boundary. HAgent is one possible external implementation; another cognition library or custom provider may replace it without changing the world model.
+
+The core world layer must not depend on a specific cognition library, model provider, or cognition framework.
 
 ## Core world layer
 
@@ -49,8 +50,10 @@ It owns:
 - event sequencing
 - spatial indexing
 - collision/occupancy rules
+- action definitions and validation
+- world-side effects
 
-The core must not reference GDI+, WinForms, Console rendering, DirectX, Godot, Unity, or a model provider.
+The core must not reference GDI+, WinForms, Console rendering, DirectX, Godot, Unity, or a model/provider implementation.
 
 ## Rendering boundary
 
@@ -97,17 +100,17 @@ A decision request may be outstanding while the world continues to advance.
 Example:
 
 ```text
-T=10.000  Agent A observes
-T=10.010  Agent B observes
-T=10.080  A action arrives
-T=11.700  B action arrives
+T=10.000  Actor A observes
+T=10.010  Actor B observes
+T=10.080  A decision arrives
+T=11.700  B decision arrives
 ```
 
 The world remains valid throughout.
 
 ## Entities and items
 
-Everything in the world has an identity, but identity does not imply semantic meaning to an agent.
+Everything in the world has an identity, but identity does not imply semantic meaning to an external cognition system.
 
 Semantic labels should not automatically be exposed through perception APIs.
 
@@ -123,7 +126,7 @@ A camera/sensor determines what an observer can perceive.
 
 A renderer determines how that information or world state is presented visually.
 
-These concepts must remain separable so a geometric camera can later feed an AI observation while a GDI camera can simultaneously show a human-readable view.
+These concepts must remain separable so a sensor can feed an external decision system while a GDI camera simultaneously shows a human-readable view.
 
 ## Example execution cycle
 
@@ -133,12 +136,26 @@ These concepts must remain separable so a geometric camera can later feed an AI 
 3. Resolve physics and collisions.
 4. Update sensors/cameras.
 5. Produce observation snapshots.
-6. Dispatch observations to eligible agents.
-7. Receive actions asynchronously.
-8. Validate actions against current world state.
+6. Dispatch observations to eligible decision providers.
+7. Receive decisions asynchronously.
+8. Validate decisions against current world state.
 9. Queue/apply valid actions according to action timing rules.
 10. Record events for replay/analysis.
 11. Render current state through the selected renderer.
 ```
 
 The cycle must work in real-time, accelerated mode, or headless mode.
+
+## External cognition integration rule
+
+The generic boundary is:
+
+```text
+HWorld observation/context
+        -> external decision provider
+        -> decision/result
+        -> HWorld validation
+        -> world action/state
+```
+
+HWorld must remain runnable without external cognition. The choice of cognition library, model provider, and cognition runtime is host policy, not part of the world model.
