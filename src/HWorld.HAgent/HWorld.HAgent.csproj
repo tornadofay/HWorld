@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
     <TargetFramework>net9.0-windows</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>HWorld.HAgent</RootNamespace>
     <AssemblyName>HWorld.HAgent</AssemblyName>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
@@ -29,5 +29,9 @@
     <Reference Include="HAgent.WinForms">
       <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.WinForms.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="10.0.11" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.11" />
   </ItemGroup>
 </Project>
