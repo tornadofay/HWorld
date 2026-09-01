@@ -6,6 +6,7 @@ using HWorld.WinForms;
 using HWorld.WinForms.Helpers;
 using HWorld.Console;
 using HWorld.WinForms.Helpers.Button;
+using HWorld.HAgent;
 
 namespace HWorld.Example
 {
@@ -37,7 +38,7 @@ namespace HWorld.Example
                 AllowHelp = true
             };
             header.PerformOnClose += delegate { Close(); };
-            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "Design World opens the reusable WinForms designer.\r\nRun GDI opens the reusable GDI+ runtime.\r\nRun Console opens the reusable console runtime.\r\nMulti-Actor Lab demonstrates independent actors, collision and actor-specific perception.\r\nDecision Lab demonstrates asynchronous decision scheduling without HAgent.", "HWorld.Example"); };
+            header.PerformOnHelp += delegate { HMessage.ShowInformation(this, "Design World opens the reusable WinForms designer.\r\nRun GDI opens the reusable GDI+ runtime.\r\nRun Console opens the reusable console runtime.\r\nMulti-Actor Lab demonstrates independent actors, collision and actor-specific perception.\r\nDecision Lab demonstrates asynchronous decision scheduling without an LLM.\r\nHAgent Config opens the optional external cognition configuration UI.", "HWorld.Example"); };
             root.Controls.Add(header, 0, 0);
 
             var center = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = Color.Transparent };
@@ -51,8 +52,8 @@ namespace HWorld.Example
             var title = new Label { Text = "HWorld test laboratory", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomCenter, Font = new Font("Segoe UI", 24f, FontStyle.Bold), ForeColor = Color.FromArgb(246, 248, 250) };
             center.Controls.Add(title, 0, 0);
 
-            var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5, RowCount = 1, BackColor = Color.Transparent, Padding = new Padding(10, 0, 10, 0) };
-            for (int i = 0; i < 5; i++) buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
+            var buttons = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 6, RowCount = 1, BackColor = Color.Transparent, Padding = new Padding(8, 0, 8, 0) };
+            for (int i = 0; i < 6; i++) buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 16.6667f));
             center.Controls.Add(buttons, 0, 1);
 
             var designer = MakeLauncherButton("Design World");
@@ -75,10 +76,14 @@ namespace HWorld.Example
             decision.Click += delegate { OpenDecisionLab(); };
             buttons.Controls.Add(decision, 4, 0);
 
-            var description = new Label { Text = "One core world  →  reusable designer  →  GDI runtime  →  console runtime  →  multi-actor lab  →  decision scheduling lab", Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopCenter, Font = new Font("Segoe UI", 10f), ForeColor = Color.FromArgb(143, 154, 167) };
+            var hAgent = MakeLauncherButton("HAgent Config");
+            hAgent.Click += delegate { OpenHAgentConfiguration(); };
+            buttons.Controls.Add(hAgent, 5, 0);
+
+            var description = new Label { Text = "One core world  →  reusable designer  →  GDI runtime  →  console runtime  →  multi-actor lab  →  decision scheduling  →  optional external cognition", Dock = DockStyle.Fill, TextAlign = ContentAlignment.TopCenter, Font = new Font("Segoe UI", 10f), ForeColor = Color.FromArgb(143, 154, 167) };
             center.Controls.Add(description, 0, 3);
 
-            var status = new Label { Text = "HWorld.Core + HWorld.WinForms + HWorld.Console + HWorld.Example laboratory", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 9f), ForeColor = Color.FromArgb(103, 116, 130) };
+            var status = new Label { Text = "HWorld.Core + HWorld.WinForms + HWorld.Console + HWorld.Example + optional HWorld.HAgent", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 9f), ForeColor = Color.FromArgb(103, 116, 130) };
             root.Controls.Add(status, 0, 2);
         }
 
@@ -146,6 +151,12 @@ namespace HWorld.Example
         {
             try { new DecisionSchedulingLabForm().Show(this); }
             catch (Exception ex) { HMessage.ShowException(this, "The decision scheduling laboratory could not be opened.", "HWorld.Example", ex); }
+        }
+
+        private void OpenHAgentConfiguration()
+        {
+            try { HAgentConfiguration.Show(this); }
+            catch (Exception ex) { HMessage.ShowException(this, "The HAgent configuration could not be opened.", "HWorld.Example", ex); }
         }
     }
 }
