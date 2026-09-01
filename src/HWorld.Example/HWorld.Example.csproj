@@ -12,6 +12,7 @@
     <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
     <ProjectReference Include="..\HWorld.WinForms\HWorld.WinForms.csproj" />
     <ProjectReference Include="..\HWorld.Console\HWorld.Console.csproj" />
+    <ProjectReference Include="..\HWorld.HAgent\HWorld.HAgent.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="LauncherButton.cs" />
