@@ -1,6 +1,6 @@
 # HWorld Implementation Plans
 
-> Development rule: HWorld is implemented independently of HAgent until the world core and perception/action boundaries are proven. No LLM is required for the current pre-AI foundation.
+> Development rule: HWorld is implemented independently of any particular external cognition system until the world core and perception/action boundaries are proven. No LLM is required for the deterministic foundation.
 
 ## Architecture boundary
 
@@ -13,20 +13,21 @@ HWorld is the authoritative environment:
 - spatial queries
 - observations/sensors
 - world events
-- action validation and world-side action results
+- action definitions and validation
+- world-side action results
 - world persistence
 
-External agent infrastructure such as HAgent is the cognition/decision layer:
+External cognition is a replaceable decision/cognition layer:
 
 - model/provider execution
 - reasoning lifecycle
-- tool routing
 - optional memory systems
 - optional knowledge/wiki systems
 - optional skills/procedures
-- decision policies
+- optional generic tools
+- decision execution infrastructure
 
-HWorld must expose the facts and interfaces required by those systems without implementing a second cognitive framework.
+HWorld must expose the facts and interfaces required by external cognition without implementing a second cognitive framework.
 
 ## Current state
 
@@ -74,7 +75,7 @@ The `HWorld.Example` project is the test/experiment harness. It must progressive
 
 **Status: Complete**
 
-Goal: establish a stable, renderer-independent simulation core before AI integration.
+Goal: establish a stable, renderer-independent simulation core before external cognition integration.
 
 ### Completed deliverables
 
@@ -92,7 +93,7 @@ Goal: establish a stable, renderer-independent simulation core before AI integra
 ### Rules
 
 No GDI dependency in the simulation layer.
-No HAgent dependency in the world/physics layer.
+No external cognition or model-provider dependency in the world/physics layer.
 
 ## Phase 1 — Console world
 
@@ -154,7 +155,7 @@ Actor observations are now covered by Phase 3 while preserving the same anonymou
 
 **Status: Complete**
 
-Goal: establish multiple independently embodied actors before adding LLMs.
+Goal: establish multiple independently embodied actors before external cognition.
 
 ### Completed deliverables
 
@@ -175,7 +176,7 @@ The Phase 3 laboratory demonstrates that multiple actors share one authoritative
 
 ### Boundary decisions
 
-Controllers are behavior inputs, not cognition systems. They may enqueue actions but cannot directly mutate actor position or advance simulation time.
+Controllers are behavior inputs, not cognition systems. They may request validated actions but cannot directly mutate actor position or advance simulation time.
 
 Actor collision uses the existing body AABB approach with a direct actor scan. The scan is intentionally simple for the current small-population laboratory; it should only be replaced after profiling demonstrates a need for an actor spatial index.
 
@@ -209,11 +210,11 @@ The scheduler never blocks `World.Update`. A provider can take longer than a sim
 
 ### Boundary decisions
 
-`IWorldActorDecisionProvider` is a generic external decision boundary. It is not an HAgent dependency and does not define memory, knowledge, reasoning, or provider behavior.
+`IWorldActorDecisionProvider` is a generic external decision boundary. It does not identify or depend on a particular cognition library.
 
-`WorldActorDecisionScheduler` captures immutable actor state and optional sensor text before starting background work. It applies a returned action only from the simulation thread through `World.EnqueueMove`, `World.EnqueueTurn`, or `World.EnqueueWait`.
+`WorldActorDecisionScheduler` captures immutable actor state and optional sensor output before starting background work. It applies a returned decision only from the simulation thread through HWorld's own validated action APIs.
 
-Timed-out/cancelled requests are retired. A provider that ignores cancellation can still finish, but its late result is no longer associated with the active request and cannot inject an action.
+Timed-out/cancelled requests are retired. A provider that ignores cancellation can still finish, but its late result is no longer associated with the active scheduling path and cannot inject an action.
 
 Decision cadence is measured in simulation seconds. In asynchronous mode, timeout uses wall-clock time. In deterministic-checkpoint mode, timeout uses simulation time.
 
@@ -226,29 +227,31 @@ The Decision Scheduling Laboratory should visibly demonstrate:
 3. action execution occurs independently from provider latency;
 4. decision lifecycle events report correlation and measured latency;
 5. cancellation/timeout cannot inject stale actions;
-6. the laboratory runs without HAgent or any model provider.
+6. the laboratory runs without any external cognition library.
 
-## Phase 5 — First HAgent Brain
+## Phase 5 — External Cognition Integration
 
 **Status: Planned**
 
-Goal: connect one actor to HAgent while keeping HWorld fully usable without it.
+Goal: connect the first external cognition implementation through the generic `IWorldActorDecisionProvider` boundary while keeping HWorld fully usable without it.
 
 ### Deliverables
 
-- HAgent adapter
-- Observation -> model context
-- Structured action output
-- Tool/action validation
+- External cognition adapter outside `HWorld.Core`
+- Authorized observation/context supplied to the external system
+- Generic execution/result translation
+- HWorld-owned structured action definition and validation
+- Long-lived cognition runtime associated with an actor for that actor's lifetime
 - Async decision requests
-- Per-agent reasoning cadence
-- Action queue
+- Per-actor reasoning cadence
+- Action queue integration
 - Action result feedback
-- Failure/timeout handling
+- Failure/timeout/cancellation handling
+- Provider/library removal without changes to the HWorld world model
 
-The integration belongs at the perception/action boundary. HWorld remains authoritative over physical state and HAgent remains an external decision/cognition system.
+The first external implementation may be HAgent. HWorld must treat it as replaceable external infrastructure, not as part of the world domain model.
 
-## Phase 6 — Cognitive integration contracts
+## Phase 6 — Cognitive systems boundary
 
 **Status: Planned**
 
@@ -257,13 +260,13 @@ Goal: expose clean interfaces for external cognitive systems without moving thei
 ### HWorld provides
 
 - world events
-- observation snapshots
-- action results
+- authorized observation snapshots
+- action outcomes
 - relevant timestamps
 - actor identity and visibility rules
-- persistence hooks where required
+- persistence/replay hooks where required
 
-### HAgent/external cognition may provide
+### External cognition may provide
 
 - working memory
 - episodic memory
@@ -273,16 +276,7 @@ Goal: expose clean interfaces for external cognitive systems without moving thei
 - wiki-like knowledge
 - reusable skills
 - private/shared/group cognitive stores
-
-The conceptual flow is:
-
-```text
-HWorld event/observation
-        -> external cognition
-        -> memory / knowledge / skill
-        -> decision
-        -> HWorld action validation
-```
+- learning/consolidation policies
 
 HWorld should not contain the policy deciding what an agent remembers or believes.
 
@@ -303,7 +297,7 @@ Goal: turn agents into fully embodied participants.
 - Interaction validation
 - Physical tool actions
 
-The physical mechanics belong to HWorld. The choice of procedure or intention belongs to the agent/cognition layer.
+The physical mechanics belong to HWorld. The choice of procedure or intention belongs to the external cognition layer.
 
 ## Phase 8 — Knowledge and Skills
 
@@ -346,7 +340,7 @@ Goal: allow multiple autonomous agents to inhabit one world.
 - Group behavior
 - Reputation and social state
 
-Different agents may use different models, providers, prompt/configuration styles, cognitive rates, sensors and cognitive stores in the same simulation.
+Different actors may use different external cognition implementations, models, providers, cognitive rates, sensors and cognitive stores in the same simulation.
 
 ## Phase 10 — Generational Inheritance
 
@@ -366,7 +360,7 @@ Goal: explore inheritance of learned knowledge and behavioral tendencies.
 - Environmental relevance/forgetting
 - Co-evolution experiments
 
-HWorld models the world and lineage facts. An external cognition layer determines how information is remembered, generalized, inherited, forgotten, or converted into behavior.
+HWorld models the world and lineage facts. External cognition determines how information is remembered, generalized, inherited, forgotten, or converted into behavior.
 
 ## Phase 11 — Advanced Perception
 
@@ -419,7 +413,7 @@ All must consume the same renderer-independent world/state interfaces.
 
 ## Performance principle
 
-Measure before optimizing, but design hot paths for low allocation from the beginning. Keep spatial queries reusable, keep renderers out of the simulation core, and avoid sending redundant information to external models.
+Measure before optimizing, but design hot paths for low allocation from the beginning. Keep spatial queries reusable, keep renderers out of the simulation core, and avoid sending redundant information to external cognition systems.
 
 ## Documentation rule
 
