@@ -23,7 +23,7 @@ namespace HWorld.HAgent
             "\"directionY\":{\"type\":\"number\"}," +
             "\"durationSeconds\":{\"type\":\"number\",\"exclusiveMinimum\":0}," +
             "\"angleDegrees\":{\"type\":\"number\"}" +
-            "},\"required\":[\"action\"],\"additionalProperties\":false}";
+            "},\"required\":[\"action\",\"directionX\",\"directionY\",\"durationSeconds\",\"angleDegrees\"],\"additionalProperties\":false}";
 
         private readonly HAgentClient _client;
         private readonly AgentRuntimeInstance _runtimeInstance;
@@ -105,7 +105,10 @@ namespace HWorld.HAgent
             {
                 "Choose the next action for the actor from its current observation.",
                 "For this experiment, choose MOVE whenever a safe non-zero movement is possible. Use WAIT only when movement is not appropriate.",
-                "Return exactly one JSON object matching the structured-output schema. Do not explain the decision.",
+                "Return exactly one JSON object matching the structured-output schema. All five properties are required.",
+                "For MOVE, provide directionX/directionY/durationSeconds and set angleDegrees to 0.",
+                "For TURN, provide angleDegrees and set directionX/directionY to 0 and durationSeconds to 0.000001.",
+                "For WAIT, provide durationSeconds and set directionX/directionY/angleDegrees to 0.",
                 "",
                 "Actor:",
                 "  id: " + context.ActorId.ToString("N"),
