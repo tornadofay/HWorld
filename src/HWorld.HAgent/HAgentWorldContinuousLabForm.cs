@@ -13,6 +13,7 @@ using HAgent.Models;
 using HAgent.Providers.OpenAICompatible;
 using HAgent.Runtime;
 using HAgent.Storage.File;
+using HAgent.WinForms.Helpers.Button;
 using HWorld.Core.Geometry;
 using HWorld.Core.World;
 using HWorld.WinForms;
@@ -420,9 +421,9 @@ namespace HWorld.HAgent
             _provider.Dispose();
         }
 
-        private static Button MakeButton(string text)
+        private static HButton MakeButton(string text)
         {
-            return new Button
+            return new HButton
             {
                 Text = text,
                 Dock = DockStyle.Fill,
@@ -430,7 +431,7 @@ namespace HWorld.HAgent
                 Margin = new Padding(0, 4, 0, 4),
                 Height = 32,
                 Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                UseVisualStyleBackColor = true
+                Width = 200,
             };
         }
 
