@@ -2,7 +2,7 @@
 
 ## Current release state — Pre-AI decision-scheduling foundation
 
-The deterministic world, first perception experiments, multi-actor foundation, and the first asynchronous decision-scheduling boundary are implemented. The simulation remains independent of HAgent, a specific LLM provider, a GPU, and a particular renderer.
+The deterministic world, first perception experiments, multi-actor foundation, and asynchronous decision-scheduling boundary are implemented. HWorld remains independent of any particular cognition library, LLM provider, GPU, or renderer.
 
 ### Completed
 
@@ -34,13 +34,21 @@ The deterministic world, first perception experiments, multi-actor foundation, a
 
 Observers have a forward-facing geometry camera with FOV and range and receive local geometric observations. Compact serialization and token estimation are implemented. Occlusion, richer projection, and alternative sensor models remain future work.
 
-## v0.4 — First HAgent Brain
+## v0.4 — External Cognition Integration
 
 **Status: Planned**
 
-One actor can reason through an HAgent provider, select validated actions, and continue while the simulation clock advances independently.
+Connect one external cognition implementation through the existing generic decision boundary. HAgent may be the first implementation, but it is not part of the HWorld domain model and may be replaced by another provider/library.
 
-HWorld remains responsible for world state, observations, events, and action validation. HAgent remains an external agent execution/cognition system.
+Requirements:
+
+- long-lived cognition runtime associated with an actor while that actor exists;
+- authorized observation/context supplied by HWorld;
+- structured decision/result handling;
+- HWorld-owned action definitions and validation;
+- asynchronous execution without stopping simulation time;
+- cancellation, timeout, correlation, and stale-result handling;
+- HWorld remains fully runnable without external cognition.
 
 ## v0.5 — GDI World Viewer
 
@@ -48,9 +56,11 @@ HWorld remains responsible for world state, observations, events, and action val
 
 ## v0.6 — Cognitive Systems Boundary
 
-**Status: Planned / owned primarily by external agent infrastructure**
+**Status: Planned**
 
-HWorld does **not** become a second memory/agent framework. HWorld provides world events, observations, action outcomes, and persistence boundaries that an external cognitive system can consume.
+HWorld provides authoritative events, observations, action outcomes, and host-owned persistence boundaries. External cognition determines what an agent remembers, believes, knows, learns, or forgets.
+
+HWorld must not become a second cognitive framework.
 
 ## v0.7 — Embodied Interaction
 
@@ -66,23 +76,21 @@ External cognitive systems can consolidate experiences into reusable knowledge a
 
 ## v0.9 — Multi-Agent World
 
-**Status: Foundation complete; autonomous-agent layer remains planned**
+**Status: Foundation complete; autonomous cognition remains planned**
 
-The deterministic multi-actor and asynchronous decision foundations are now implemented. Multiple actors can share one continuous simulation, have independent physical state, queues, controllers and sensors, and receive decisions without blocking world time. Autonomous HAgent-backed behavior, communication and social behavior remain later work.
+Multiple actors can share one continuous simulation, have independent physical state, queues, controllers and sensors, and receive decisions without blocking world time. Autonomous external cognition, communication and social behavior remain later work.
 
 ## Phase 4 — Time and decision scheduling
 
 **Status: Implementation complete; local build verification pending**
 
-The generic scheduler boundary is now implemented in `HWorld.Core`. It separates simulation progression from decision latency, supports per-actor cadence and timeout policy, cancellation, lifecycle events, concurrent-request limits, stale-result protection, action-completion wake-up, and deterministic-checkpoint experiments.
+The generic scheduler boundary separates simulation progression from decision latency and supports per-actor cadence and timeout policy, cancellation, lifecycle events, concurrent-request limits, stale-result protection, action-completion wake-up, and deterministic-checkpoint experiments.
 
-`HWorld.Example` includes a Decision Scheduling Laboratory with deliberately different provider latencies so the separation can be observed without HAgent.
-
-## Phase 5 — First HAgent Brain
+## Phase 5 — External Cognition Integration
 
 **Status: Planned**
 
-Connect `IWorldActorDecisionProvider` to HAgent through an adapter. No change to the HWorld physical authority is required.
+Implement the first HWorld-side adapter for an external cognition library. The adapter must remain outside `HWorld.Core` and must translate external results into HWorld-owned validated actions.
 
 ## Post-1.0 research tracks
 
@@ -123,15 +131,17 @@ Connect `IWorldActorDecisionProvider` to HAgent through an adapter. No change to
 ### Scale
 
 - Thousands of cheap rule-driven entities
-- Sparse LLM activation
+- Sparse cognition activation
 - Event-driven reasoning
 - Local models where available
 - Efficient observation/token budgets
 
 ## Architecture rule for cognition
 
-HWorld owns **what exists and what happens**. External cognition such as HAgent owns **what an agent remembers, believes, knows, learns, and decides**.
+HWorld owns **what exists and what happens**. External cognition owns **what an agent remembers, believes, knows, learns, and decides**.
+
+The external cognition implementation is replaceable. HWorld must not depend on a particular library or model provider.
 
 ## Roadmap rule
 
-No milestone should make the simulation dependent on a particular renderer, model provider, or GPU. Changes that alter the implemented state must update the README, roadmap, active implementation plan, and relevant detailed docs.
+No milestone should make the simulation dependent on a particular renderer, model provider, cognition library, or GPU. Changes that alter the implemented state must update the README, roadmap, active implementation plan, and relevant detailed docs.
