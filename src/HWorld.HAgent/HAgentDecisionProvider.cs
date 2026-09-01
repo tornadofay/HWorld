@@ -35,6 +35,8 @@ namespace HWorld.HAgent
             _runtimeInstance = runtimeInstance ?? throw new ArgumentNullException(nameof(runtimeInstance));
         }
 
+        public event Action<AgentExecution> ExecutionCompleted;
+
         public AgentRuntimeInstance RuntimeInstance
         {
             get { return _runtimeInstance; }
@@ -75,6 +77,8 @@ namespace HWorld.HAgent
                 request,
                 cancellationToken).ConfigureAwait(false);
 
+            ExecutionCompleted?.Invoke(execution);
+
             if (execution == null || execution.Response == null)
                 throw new InvalidOperationException("HAgent returned no execution response.");
 
@@ -100,6 +104,7 @@ namespace HWorld.HAgent
             return string.Join(Environment.NewLine, new[]
             {
                 "Choose the next action for the actor from its current observation.",
+                "For this experiment, choose MOVE whenever a safe non-zero movement is possible. Use WAIT only when movement is not appropriate.",
                 "Return exactly one JSON object matching the structured-output schema. Do not explain the decision.",
                 "",
                 "Actor:",
