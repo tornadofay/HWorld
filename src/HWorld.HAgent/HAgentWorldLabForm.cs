@@ -38,9 +38,9 @@ namespace HWorld.HAgent
         private readonly System.Windows.Forms.Timer _timer;
         private readonly GdiWorldCanvas _canvas;
         private readonly GeometryCameraView _cameraView;
-        private readonly Label _status;
-        private readonly Label _position;
-        private readonly Label _decisionState;
+        private Label _status;
+        private Label _position;
+        private Label _decisionState;
         private bool _running = true;
         private bool _sensorMode;
 
