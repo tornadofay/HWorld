@@ -13,6 +13,7 @@ using HAgent.Models;
 using HAgent.Providers.OpenAICompatible;
 using HAgent.Runtime;
 using HAgent.Storage.File;
+using HAgent.WinForms.Helpers;
 using HWorld.Core.Geometry;
 using HWorld.Core.World;
 using HWorld.WinForms;
