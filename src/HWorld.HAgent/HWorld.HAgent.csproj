@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>HWorld.HAgent</RootNamespace>
+    <AssemblyName>HWorld.HAgent</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
+  </ItemGroup>
+</Project>
