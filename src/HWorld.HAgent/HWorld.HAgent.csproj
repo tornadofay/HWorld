@@ -9,4 +9,24 @@
   <ItemGroup>
     <ProjectReference Include="..\HWorld.Core\HWorld.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="HAgent.Core">
+      <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="HAgent.Providers.OpenAICompatible">
+      <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.Providers.OpenAICompatible.dll</HintPath>
+    </Reference>
+    <Reference Include="HAgent.Storage.File">
+      <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.Storage.File.dll</HintPath>
+    </Reference>
+    <Reference Include="HAgent.Storage.MySql">
+      <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.Storage.MySql.dll</HintPath>
+    </Reference>
+    <Reference Include="HAgent.Storage.SqlServer">
+      <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.Storage.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="HAgent.WinForms">
+      <HintPath>..\..\..\HAgent\src\HAgent.Example\bin\Debug\net9.0-windows\HAgent.WinForms.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
